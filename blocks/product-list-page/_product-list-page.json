@@ -11,7 +11,7 @@
               "name": "Product List Page",
               "model": "product-list-page",
               "key-value": true,
-              "urlPath": "apparel"
+              "urlPath": "cat"
             }
           }
         }
