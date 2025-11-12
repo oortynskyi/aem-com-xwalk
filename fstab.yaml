@@ -1,6 +1,6 @@
 mountpoints:
   /:
-    url: "https://author-p103257-e1826359.adobeaemcloud.com/bin/franklin.delivery/oortynskyi/aem-com-xwalk/main"
-    type: "markup"
-    suffix: ".html"
+    url: "https://drive.google.com/drive/folders/1e96zzZe22jbCCsPcP6o-7J1A-u5pfVmt"
+    type: "google"
+    suffix: "docs"
   
