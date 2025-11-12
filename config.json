@@ -17,7 +17,7 @@
         }
       },
       "analytics": {
-        "base-currency-code": "USD",
+        "base-currency-code": "GBP",
         "environment": "Testing",
         "environment-id": "8f65b7c3-4e94-4b00-86f5-c8b8f905336e",
         "store-code": "main_website_store",
