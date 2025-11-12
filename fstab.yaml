@@ -2,5 +2,5 @@ mountpoints:
   /:
     url: "https://drive.google.com/drive/folders/1BYMtOotXutCHmGc7qRSL_j6Bmt8v6jcH"
     type: "google"
-    suffix: "docs"
+    product: "docs"
   
