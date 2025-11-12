@@ -33,7 +33,7 @@
       },
       "plugins": {
         "picker": {
-           "rootCategory": "YOUR_ROOT_CATEGORY_ID"
+           "rootCategory": 2
          }
       }
     }
