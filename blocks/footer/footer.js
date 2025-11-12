@@ -168,5 +168,7 @@ export default async function decorate(block) {
   }
   while (fragment.firstElementChild) footer.append(fragment.firstElementChild);
 
+  footer.innerHTML = `<div>Hi! I'm new test footer!</div>`;
+
   block.append(footer);
 }
