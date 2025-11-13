@@ -1,6 +1,6 @@
 mountpoints:
   /:
-    url: "https://drive.google.com/drive/folders/1BYMtOotXutCHmGc7qRSL_j6Bmt8v6jcH"
+    url: "https://drive.google.com/drive/folders/1DdzD6c6o6d8Rh-XR6k-MFH0AW2B89oJK"
     type: "google"
     product: "docs"
   
