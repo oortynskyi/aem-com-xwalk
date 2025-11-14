@@ -1,5 +1,4 @@
 .carousel .carousel-slides-container {
-
   position: relative;
 }
 
@@ -147,6 +146,7 @@
 
   .carousel .carousel-slide .carousel-slide-content {
     --slide-content-width: calc((100% - 184px) / 2);
+    
     margin: 92px;
   }
 
