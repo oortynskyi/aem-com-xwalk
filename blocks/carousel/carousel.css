@@ -1,4 +1,5 @@
 .carousel .carousel-slides-container {
+
   position: relative;
 }
 
@@ -56,7 +57,7 @@
   margin: 68px;
   padding: 16px;
   color: white;
-  background-color: rgba(19 19 19 / 75%);
+  background-color: rgb(19 19 19 / 75%);
   position: relative;
   width: var(--slide-content-width, auto);
   border-radius: 1rem;
@@ -108,14 +109,14 @@
   margin: 0;
   border-radius: 50%;
   padding: 0;
-  background-color: rgba(19 19 19 / 25%);
+  background-color: rgb(19 19 19 / 25%);
   color: var(--color-neutral-600);
   transition: background-color 0.3s , color 0.3s;
 }
 
 .carousel .carousel-navigation-buttons button:hover,
 .carousel .carousel-navigation-buttons button:focus-visible {
-  background-color: rgba(19 19 19 / 75%);
+  background-color: rgb(19 19 19 / 75%);
   color: white; 
 }
 
@@ -138,7 +139,7 @@
   left: calc(50% - 2px);
 }
 
-@media (width >= 600px) {
+@media (min-width: 600px) {
   .carousel .carousel-navigation-buttons {
     left: 24px;
     right: 24px;
