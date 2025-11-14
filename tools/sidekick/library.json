@@ -1,0 +1,9 @@
+{
+  "base": "/tools/sidekick", 
+  "plugins": {
+    "blocks": {
+      "sheet": "helix-blocks",
+      "encodeImages": true
+    }
+  }
+}
