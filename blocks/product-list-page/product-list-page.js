@@ -71,7 +71,6 @@ export default async function decorate(block) {
      const currentPath = window.location.pathname;
      const currentCategory = currentPath.split('/').filter(Boolean).pop();
   
-    console.log('currentCategory', currentCategory);
     await search({
       phrase: '', // search all products in the category
       currentPage: page ? Number(page) : 1,
