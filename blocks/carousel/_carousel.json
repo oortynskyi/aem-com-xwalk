@@ -1,0 +1,77 @@
+{
+  "definitions": [
+    {
+      "title": "Carousel",
+      "id": "carousel",
+      "plugins": {
+        "xwalk": {
+          "page": {
+            "resourceType": "core/franklin/components/carousel/v1/carousel",
+            "template": {
+              "slides": "1"
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "models": [
+    {
+      "id": "carousel",
+      "fields": [
+        {
+          "component": "text",
+          "valueType": "number",
+          "name": "slides",
+          "value": "",
+          "label": "Number of Slides"
+        }
+      ]
+    },
+
+    {
+      "id": "carousel-slide",
+      "fields": [
+        {
+          "component": "richtext",
+          "name": "content",
+          "label": "Slide Content"
+        },
+        {
+          "component": "image",
+          "name": "image",
+          "label": "Slide Image"
+        },
+        {
+          "component": "select",
+          "name": "align",
+          "label": "Content Alignment",
+          "options": [
+            { "label": "Left", "value": "left" },
+            { "label": "Center", "value": "center" },
+            { "label": "Right", "value": "right" }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "filters": [
+    {
+      "id": "carousel",
+      "components": [
+        "carousel-slide"
+      ]
+    },
+    {
+      "id": "carousel-slide",
+      "components": [
+        "title",
+        "text",
+        "button",
+        "image"
+      ]
+    }
+  ]
+}

@@ -23,7 +23,8 @@
       "columns",
       "fragment",
       "product-teaser",
-      "product-recommendations"
+      "product-recommendations",
+      "carousel"
     ]
   },
   {
@@ -55,7 +56,8 @@
       "enrichment",
       "product-teaser",
       "product-recommendations",
-      "product-list-page"
+      "product-list-page",
+      "carousel"
     ]
   },
   {
@@ -72,7 +74,8 @@
       "enrichment",
       "product-details",
       "product-teaser",
-      "product-recommendations"
+      "product-recommendations",
+      "carousel"
     ]
   },
   {

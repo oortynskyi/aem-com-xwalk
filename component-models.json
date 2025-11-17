@@ -96,6 +96,36 @@
     ]
   },
   {
+    "id": "carousel-slide",
+    "fields": [
+      {
+        "component": "image",
+        "name": "image",
+        "label": "Slide Image"
+      },
+      {
+        "component": "text",
+        "name": "imageAlt",
+        "label": "Alt Text"
+      },
+      {
+        "component": "richtext",
+        "name": "content",
+        "label": "Slide Content"
+      },
+      {
+        "component": "select",
+        "name": "align",
+        "label": "Content Alignment",
+        "options": [
+          { "name": "Left", "value": "left" },
+          { "name": "Center", "value": "center" },
+          { "name": "Right", "value": "right" }
+        ]
+      }
+    ]
+  },
+  {
     "id": "section",
     "fields": [
       {
