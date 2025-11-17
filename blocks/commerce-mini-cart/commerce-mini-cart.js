@@ -26,7 +26,6 @@ export default async function decorate(block) {
     'checkout-url': checkoutURL = '',
     'enable-updating-product': enableUpdatingProduct = 'false',
     'undo-remove-item': undo = 'false',
-    'show-close-button': showCloseButton = 'true', 
   } = readBlockConfig(block);
 
   // Get translations for custom messages
@@ -160,49 +159,6 @@ export default async function decorate(block) {
 
   block.innerHTML = '';
 
-
-    const headerFragment = document.createRange().createContextualFragment(`
-    <div class="mini-cart__header">
-      <h2 class="mini-cart__title">${placeholders?.Global?.ShoppingCart || 'Shopping Cart'}</h2>
-      ${showCloseButton === 'true' ? 
-        '<button class="mini-cart__close-button" aria-label="Close cart">' +
-          '<svg class="mini-cart__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">' +
-            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>' +
-          '</svg>' +
-        '</button>' : ''
-      }
-    </div>
-  `);
-
-  block.appendChild(headerFragment);
-
-  // Close button functionality
-  if (showCloseButton === 'true') {
-    const closeButton = block.querySelector('.mini-cart__close-button');
-    closeButton.addEventListener('click', () => {
-      // Add closing animation
-      block.classList.add('cart-mini-cart--closing');
-      
-      // Hide after animation completes
-      setTimeout(() => {
-        // Emit event for other components to listen to
-        events.emit('minicart:close', {});
-        
-        // Option 1: Hide the mini cart
-        block.style.display = 'none';
-        
-        // Option 2: Remove from DOM if needed
-        // block.remove();
-        
-        // Option 3: Dispatch custom event for parent components
-        block.dispatchEvent(new CustomEvent('minicart:closed', {
-          bubbles: true,
-          detail: { block }
-        }));
-      }, 300);
-    });
-  }
-  
   // Render MiniCart
   const createProductLink = (product) => getProductLink(product.url.urlKey, product.topLevelSku);
   await provider.render(MiniCart, {
