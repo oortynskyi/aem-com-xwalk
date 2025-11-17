@@ -23,6 +23,11 @@ function closeOnEscape(e) {
     const nav = document.getElementById('nav');
     const navSections = nav.querySelector('.nav-sections');
     const navSectionExpanded = navSections.querySelector('[aria-expanded="true"]');
+    const minicartPanel = document.querySelector('.minicart-panel');
+    if (minicartPanel && minicartPanel.classList.contains('nav-tools-panel--show')) {
+      minicartPanel.classList.remove('nav-tools-panel--show');
+      return;
+    }
     if (navSectionExpanded && isDesktop.matches) {
       toggleAllNavSections(navSections);
       overlay.classList.remove('show');
@@ -305,6 +310,10 @@ export default async function decorate(block) {
       const miniCartPath = miniCartMeta ? new URL(miniCartMeta, window.location).pathname : '/mini-cart';
       const miniCartFragment = await loadFragment(miniCartPath);
       minicartPanel.append(miniCartFragment.firstElementChild);
+
+      setTimeout(() => {
+      addCloseButtonToMiniCart();
+    }, 100);
     });
   }
 
@@ -314,6 +323,10 @@ export default async function decorate(block) {
       const { publishShoppingCartViewEvent } = await import('@dropins/storefront-cart/api.js');
       publishShoppingCartViewEvent();
     }
+      setTimeout(() => {
+      addCloseButtonToMiniCart();
+    }, 200);
+  }
 
     togglePanel(minicartPanel, state);
   }
@@ -525,4 +538,98 @@ export default async function decorate(block) {
     () => !isDesktop.matches && toggleMenu(nav, navSections, false),
   );
   renderAuthDropdown(navTools);
+
+
+function addCloseButtonToMiniCart() {
+  console.log('🎯 Adding close button to mini cart...');
+  
+  const miniCartPanel = document.querySelector('.minicart-panel');
+  if (!miniCartPanel) {
+    console.log('❌ Mini cart panel not found');
+    return;
+  }
+
+  // Use MutationObserver to wait for mini cart to be loaded
+  const observer = new MutationObserver((mutations) => {
+    const miniCartHeader = miniCartPanel.querySelector('.cart-mini-cart__heading');
+    const miniCartContainer = miniCartPanel.querySelector('.cart-mini-cart');
+    
+    if (miniCartHeader && !miniCartHeader.querySelector('.mini-cart-close-btn')) {
+      console.log('✅ Found MiniCart header, adding close button');
+      
+      // Create close button
+      const closeButton = document.createElement('button');
+      closeButton.className = 'mini-cart-close-btn';
+      closeButton.innerHTML = '×';
+      closeButton.setAttribute('aria-label', 'Close cart');
+      closeButton.setAttribute('title', 'Close cart');
+      
+      // Inline styles
+      Object.assign(closeButton.style, {
+        position: 'absolute',
+        top: '50%',
+        right: '15px',
+        transform: 'translateY(-50%)',
+        background: 'none',
+        border: 'none',
+        fontSize: '24px',
+        cursor: 'pointer',
+        color: '#666',
+        width: '30px',
+        height: '30px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: '1000',
+        transition: 'all 0.2s ease'
+      });
+      
+      // Hover effects
+      closeButton.addEventListener('mouseenter', function() {
+        this.style.background = '#f5f5f5';
+        this.style.color = '#333';
+      });
+      
+      closeButton.addEventListener('mouseleave', function() {
+        this.style.background = 'none';
+        this.style.color = '#666';
+      });
+      
+      // Click handler - close the mini cart panel
+      closeButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🎯 Close button clicked');
+        
+        // Close the mini cart panel
+        const minicartPanel = document.querySelector('.minicart-panel');
+        if (minicartPanel) {
+          minicartPanel.classList.remove('nav-tools-panel--show');
+        }
+        
+        // Also emit event for other components
+        events.emit('minicart:close', {});
+      });
+      
+      // Set header position and add button
+      miniCartHeader.style.position = 'relative';
+      miniCartHeader.style.paddingRight = '50px';
+      miniCartHeader.appendChild(closeButton);
+      
+      console.log('✅ Close button added to mini cart');
+      observer.disconnect(); // Stop observing after adding button
+    }
+  });
+  
+  // Start observing
+  observer.observe(miniCartPanel, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Timeout fallback
+  setTimeout(() => {
+    observer.disconnect();
+  }, 5000);
 }
