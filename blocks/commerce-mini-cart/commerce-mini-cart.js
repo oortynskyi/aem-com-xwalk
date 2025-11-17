@@ -225,3 +225,124 @@ export default async function decorate(block) {
 
   return block;
 }
+function addCloseButtonAfterRender(block) {
+  // Wait for MiniCart to fully load
+  setTimeout(() => {
+    console.log('🔄 Attempting to add close button...');
+    
+    // Find MiniCart header
+    const miniCartHeader = block.querySelector('.cart-mini-cart__heading');
+    const miniCartContainer = block.querySelector('.cart-mini-cart');
+    
+    if (miniCartHeader) {
+      console.log('✅ Found MiniCart header, adding close button');
+      
+      // Check if button doesn't already exist
+      if (miniCartHeader.querySelector('.mini-cart-close-btn')) {
+        console.log('ℹ️ Close button already exists');
+        return;
+      }
+      
+      // Create close button
+      const closeButton = document.createElement('button');
+      closeButton.className = 'mini-cart-close-btn';
+      closeButton.innerHTML = '×';
+      closeButton.setAttribute('aria-label', 'Close cart');
+      closeButton.setAttribute('title', 'Close cart');
+      
+      // Inline styles (works immediately)
+      Object.assign(closeButton.style, {
+        position: 'absolute',
+        top: '50%',
+        right: '15px',
+        transform: 'translateY(-50%)',
+        background: 'none',
+        border: 'none',
+        fontSize: '24px',
+        cursor: 'pointer',
+        color: '#666',
+        width: '30px',
+        height: '30px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: '1000',
+        transition: 'all 0.2s ease'
+      });
+      
+      // Hover effects
+      closeButton.addEventListener('mouseenter', function() {
+        this.style.background = '#f5f5f5';
+        this.style.color = '#333';
+      });
+      
+      closeButton.addEventListener('mouseleave', function() {
+        this.style.background = 'none';
+        this.style.color = '#666';
+      });
+      
+      // Click handler
+      closeButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🎯 Close button clicked');
+        
+        // Emit event for other components
+        events.emit('minicart:close', {});
+        
+        // Hide mini cart
+        if (miniCartContainer) {
+          miniCartContainer.style.display = 'none';
+        }
+        
+        // Also hide the entire block
+        block.style.display = 'none';
+        
+        // Dispatch custom event
+        document.dispatchEvent(new CustomEvent('aem:minicart:close', {
+          bubbles: true
+        }));
+      });
+      
+      // Set header position and add button
+      miniCartHeader.style.position = 'relative';
+      miniCartHeader.style.paddingRight = '50px'; // Make space for button
+      miniCartHeader.appendChild(closeButton);
+      
+      console.log('✅ Close button added successfully');
+      
+    } else {
+      console.log('❌ MiniCart header not found, available elements:');
+      console.log(block.querySelectorAll('*'));
+      
+      // Try using MutationObserver if dropin loads asynchronously
+      retryWithObserver(block);
+    }
+  }, 100); // Small delay to ensure dropin fully loads
+}
+
+// Fallback function - use MutationObserver if header is not immediately available
+function retryWithObserver(block) {
+  console.log('🔄 Trying MutationObserver approach...');
+  
+  const observer = new MutationObserver((mutations) => {
+    const miniCartHeader = block.querySelector('.cart-mini-cart__heading');
+    if (miniCartHeader) {
+      console.log('✅ MutationObserver found MiniCart header');
+      observer.disconnect();
+      addCloseButtonAfterRender(block); // Call again
+    }
+  });
+  
+  observer.observe(block, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Stop observing after 3 seconds
+  setTimeout(() => {
+    observer.disconnect();
+    console.log('⏰ MutationObserver timeout');
+  }, 3000);
+}
