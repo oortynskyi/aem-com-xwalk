@@ -17,48 +17,6 @@
     display: block;
 }
 
-.mini-cart-close-btn {
-  position: absolute;
-  top: 50%;
-  right: 15px;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--color-neutral-700);
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  transition: all 0.2s ease;
-}
-
-.mini-cart-close-btn:hover {
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-900);
-}
-
-/* Ensure MiniCart header has space for close button */
-.cart-mini-cart__heading {
-  position: relative !important;
-  padding-right: 50px !important;
-}
-
-/* Animation for closing */
-.cart-mini-cart {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.cart-mini-cart--closing {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
-/* Additional styles for close button positioning */
 .mini-cart__header {
   display: flex;
   justify-content: between;
@@ -84,4 +42,14 @@
 .mini-cart__close-icon {
   width: 20px;
   height: 20px;
+}
+
+/* Animation for closing */
+.cart-mini-cart {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.cart-mini-cart--closing {
+  transform: translateX(100%);
+  opacity: 0;
 }
