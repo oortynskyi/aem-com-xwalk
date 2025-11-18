@@ -53,7 +53,6 @@ export default async function decorate(block) {
     block.dataset.category = config.urlpath;
   }
 
-  
   // Get variables from the URL
   const urlParams = new URLSearchParams(window.location.search);
   // get all params
@@ -68,15 +67,15 @@ export default async function decorate(block) {
   if (config.urlpath) {
     // If it's a category page...
 
-     const currentPath = window.location.pathname;
-     const currentCategory = currentPath.split('/').filter(Boolean).pop();
-  
+    const currentPath = window.location.pathname;
+    const currentCategory = currentPath.split('/').filter(Boolean).pop();
+
     await search({
       phrase: '', // search all products in the category
       currentPage: page ? Number(page) : 1,
       pageSize: 8,
       sort: sort ? getSortFromParams(sort) : [{ attribute: 'position', direction: 'DESC' }],
-  
+
       filter: [
         { attribute: 'categoryPath', eq: currentCategory || config.urlpath }, // Add category filter
         ...getFilterFromParams(filter),

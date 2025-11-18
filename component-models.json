@@ -96,36 +96,6 @@
     ]
   },
   {
-    "id": "carousel-slide",
-    "fields": [
-      {
-        "component": "image",
-        "name": "image",
-        "label": "Slide Image"
-      },
-      {
-        "component": "text",
-        "name": "imageAlt",
-        "label": "Alt Text"
-      },
-      {
-        "component": "richtext",
-        "name": "content",
-        "label": "Slide Content"
-      },
-      {
-        "component": "select",
-        "name": "align",
-        "label": "Content Alignment",
-        "options": [
-          { "name": "Left", "value": "left" },
-          { "name": "Center", "value": "center" },
-          { "name": "Right", "value": "right" }
-        ]
-      }
-    ]
-  },
-  {
     "id": "section",
     "fields": [
       {
@@ -181,6 +151,71 @@
   },
   {
     "id": "card",
+    "fields": [
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "image",
+        "label": "Image",
+        "multi": false
+      },
+      {
+        "component": "richtext",
+        "name": "text",
+        "value": "",
+        "label": "Text",
+        "valueType": "string"
+      }
+    ]
+  },
+  {
+    "id": "carousel",
+    "fields": [
+      {
+        "component": "text",
+        "valueType": "number",
+        "name": "slides",
+        "value": "",
+        "label": "Number of Slides"
+      }
+    ]
+  },
+  {
+    "id": "carousel-slide",
+    "fields": [
+      {
+        "component": "richtext",
+        "name": "content",
+        "label": "Slide Content"
+      },
+      {
+        "component": "image",
+        "name": "image",
+        "label": "Slide Image"
+      },
+      {
+        "component": "select",
+        "name": "align",
+        "label": "Content Alignment",
+        "options": [
+          {
+            "label": "Left",
+            "value": "left"
+          },
+          {
+            "label": "Center",
+            "value": "center"
+          },
+          {
+            "label": "Right",
+            "value": "right"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "catalog",
     "fields": [
       {
         "component": "reference",
