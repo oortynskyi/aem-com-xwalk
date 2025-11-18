@@ -14,6 +14,8 @@ export default function decorate(block) {
     if (rowLink) {
       const linkContainer = rowLink.closest('div');
       if (linkContainer) linkContainer.remove();
+      rowLink.target = '_blank';
+      rowLink.rel = 'noopener noreferrer';
     }
 
     if (rowLink) {
