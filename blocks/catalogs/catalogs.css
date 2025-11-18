@@ -32,12 +32,13 @@
 }
 
 .catalogs .catalogs-catalog-footer {
-  margin-top: var(--spacing-small);
-  padding-top: var(--spacing-small);
+  display: flex;
+  justify-content: center;
   border-top: 1px solid var(--color-neutral-500);
 }
 
 .catalogs .catalogs-catalog-footer a {
   font-weight: 600;
+  font-size: medium;
   text-decoration: underline;
 }
