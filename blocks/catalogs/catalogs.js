@@ -9,7 +9,6 @@ export default function decorate(block) {
     moveInstrumentation(row, li);
 
     const rowLink = row.querySelector('a');
-i
     while (row.firstElementChild) li.append(row.firstElementChild);
 
     if (rowLink) {
