@@ -21,6 +21,42 @@ import {
 } from './commerce.js';
 
 
+(async function initAemContext() {
+  if (!window.aemContext) window.aemContext = {};
+  // jeśli już mamy zainicjalizowane i nie jest puste - zostawiamy
+  if (window.aemContext.config && Object.keys(window.aemContext.config).length) {
+    console.log('✅ aemContext already initialized');
+    return;
+  }
+
+  try {
+    const res = await fetch('/config.json', { cache: 'no-store' });
+    const json = await res.json();
+
+    let configMap = {};
+
+    // jeżeli backend zwraca "sheet" z data: [{key, value}, ...]
+    if (json && Array.isArray(json.data)) {
+      configMap = Object.fromEntries(
+        json.data
+          .filter(e => e && typeof e.key === 'string')
+          .map(({ key, value }) => [key, value]),
+      );
+    } else if (json && typeof json === 'object') {
+      // jeśli to już prosta mapa lub inny obiekt - przypisz bez zmian
+      configMap = json;
+    } else {
+      configMap = {};
+    }
+
+    // nadpisujemy window.aemContext.config znormalizowanym obiektem
+    window.aemContext.config = configMap;
+    console.log('✅ aemContext initialized and normalized', window.aemContext.config);
+  } catch (error) {
+    console.error('❌ Failed to initialize aemContext:', error);
+    window.aemContext.config = {};
+  }
+})();
 
 /**
  * Moves all the attributes from a given elmenet to another given element.
