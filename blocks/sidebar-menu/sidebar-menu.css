@@ -1,0 +1,82 @@
+
+.sidebar-menu {
+    background-color: var(--color-neutral-200);
+    width: 35rem;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.sidebar-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-menu .sidebar-item {
+    position: relative;
+}
+
+.sidebar-menu .sidebar-link {
+    display: block;
+    padding: 10px 12px;
+    font-weight: 400;
+    text-decoration: none;
+    color: inherit;
+}
+
+.sidebar-menu .sidebar-link:hover {
+    background-color: var(--color-neutral-50);
+    transition: color 300ms ease, background-color 300ms ease, border-color 300ms ease;
+}
+
+.sidebar-menu .submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    background: white;
+    border: 1px solid #ddd;
+    z-index: 1000;
+    white-space: nowrap;
+    box-sizing: border-box;
+    min-width: 180px; 
+    max-width: 90vw;
+}
+
+.sidebar-menu .sidebar-item:hover > .submenu {
+    display: block;
+}
+
+.sidebar-menu .submenu .sidebar-link {
+    font-weight: 400;
+    padding: 8px 12px;
+}
+
+.sidebar-menu .submenu .submenu {
+    left: 100%;
+    top: 0;
+    white-space: nowrap;
+    min-width: 180px;
+    max-width: 90vw;
+}
+
+@media only screen and (max-width: 600px) {
+    .sidebar-menu {
+        width: 100%;
+    }
+
+    .sidebar-menu .submenu {
+        position: relative;
+        left: 0;
+        top: 0;
+        width: 100%;
+        border: none;
+    }
+
+    .sidebar-menu .submenu .submenu {
+        position: relative;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
