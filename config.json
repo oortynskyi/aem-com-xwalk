@@ -21,14 +21,14 @@
         "environment": "Testing",
         "environment-id": "8f65b7c3-4e94-4b00-86f5-c8b8f905336e",
         "store-code": "main_website_store",
-        "store-id": 1,  // ZMIENIONE: "main_website_store" → 1
-        "store-name": "Main Website Store",  // ZMIENIONE: "Default Store View" → "Main Website Store"
-        "store-url": "https://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/",  // ZMIENIONE: http → https
+        "store-id": "main_website_store",
+        "store-name": "Default Store View",
+        "store-url": "http://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/",
         "store-view-code": "default",
-        "store-view-id": 1,  // ZMIENIONE: "default" → 1
+        "store-view-id": "default",
         "store-view-name": "Default Store View",
         "website-code": "base",
-        "website-id": 1,  // ZMIENIONE: "base" → 1
+        "website-id": "base",
         "website-name": "Main Website"
       },
       "plugins": {
