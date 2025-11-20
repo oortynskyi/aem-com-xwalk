@@ -275,10 +275,31 @@ export async function loadCommerceLazy() {
  * Initializes commerce configuration
  */
 export async function initializeCommerce() {
-  initializeConfig(await getConfigFromSession(), {
-    match: (key) => window.location.pathname.match(`^(/content/.*)?${key}`),
-  });
-  return initializeDropins();
+    if (!window.aemContext?.config) {
+    console.error('❌ aemContext.config not available for commerce initialization');
+    return;
+  }
+
+  try {
+    // Użyj config z aemContext zamiast z sessionStorage
+    const configData = window.aemContext.config;
+    console.log('🔧 Using config for initializeConfig:', configData);
+
+    // Inicjalizuj configs.js z naszym configiem
+    initializeConfig(configData, {
+      match: (key) => window.location.pathname.match(`^(/content/.*)?${key}`),
+    });
+
+    console.log('✅ Commerce config initialized successfully');
+    return initializeDropins();
+  } catch (error) {
+    console.error('❌ Failed to initialize commerce config:', error);
+    throw error;
+  }
+  // initializeConfig(await getConfigFromSession(), {
+  //   match: (key) => window.location.pathname.match(`^(/content/.*)?${key}`),
+  // });
+  // return initializeDropins();
 }
 
 /**
