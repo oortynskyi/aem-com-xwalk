@@ -20,6 +20,22 @@ import {
   loadErrorPage,
 } from './commerce.js';
 
+(async function() {
+  if (!window.aemContext) {
+    window.aemContext = {};
+    
+    try {
+      const response = await fetch('/config.json');
+      const configData = await response.json();
+      window.aemContext.config = configData;
+      console.log('✅ aemContext initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize aemContext:', error);
+      window.aemContext.config = {};
+    }
+  }
+})();
+
 /**
  * Moves all the attributes from a given elmenet to another given element.
  * @param {Element} from the element to copy attributes from
@@ -29,7 +45,22 @@ export function moveAttributes(from, to, attributes) {
   if (!attributes) {
     // eslint-disable-next-line no-param-reassign
     attributes = [...from.attributes].map(({ nodeName }) => nodeName);
+(async function() {
+  // Initialize aemContext if it doesn't exist
+  if (!window.aemContext) {
+    window.aemContext = {};
+    
+    try {
+      const response = await fetch('/config.json');
+      const configData = await response.json();
+      window.aemContext.config = configData;
+      console.log('✅ aemContext initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize aemContext:', error);
+      window.aemContext.config = {};
+    }
   }
+})();  }
   attributes.forEach((attr) => {
     const value = from.getAttribute(attr);
     if (value) {
@@ -97,6 +128,8 @@ export function decorateMain(main) {
  * @param {Element} doc The container element
  */
 async function loadEager(doc) {
+
+  
   document.documentElement.lang = 'en';
   decorateTemplateAndTheme();
 
