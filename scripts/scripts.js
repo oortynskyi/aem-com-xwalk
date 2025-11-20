@@ -20,21 +20,7 @@ import {
   loadErrorPage,
 } from './commerce.js';
 
-(async function() {
-  if (!window.aemContext) {
-    window.aemContext = {};
-    
-    try {
-      const response = await fetch('/config.json');
-      const configData = await response.json();
-      window.aemContext.config = configData;
-      console.log('✅ aemContext initialized');
-    } catch (error) {
-      console.error('❌ Failed to initialize aemContext:', error);
-      window.aemContext.config = {};
-    }
-  }
-})();
+
 
 /**
  * Moves all the attributes from a given elmenet to another given element.
@@ -132,6 +118,19 @@ async function loadEager(doc) {
   
   document.documentElement.lang = 'en';
   decorateTemplateAndTheme();
+
+    if (!window.aemContext || !window.aemContext.config) {
+    window.aemContext = window.aemContext || {};
+    try {
+      const response = await fetch('/config.json');
+      const configData = await response.json();
+      window.aemContext.config = configData;
+      console.log('✅ aemContext initialized and ready');
+    } catch (error) {
+      console.error('❌ Failed to initialize aemContext:', error);
+      window.aemContext.config = {};
+    }
+  }
 
   const main = doc.querySelector('main');
   if (main) {
