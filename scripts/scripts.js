@@ -23,8 +23,9 @@ import {
 
 (async function initAemContext() {
   if (!window.aemContext) window.aemContext = {};
-  // jeśli już mamy zainicjalizowane i nie jest puste - zostawiamy
-  if (window.aemContext.config && Object.keys(window.aemContext.config).length) {
+  
+  // Jeśli już mamy zainicjalizowane i nie jest puste - zostawiamy
+  if (window.aemContext.config && Object.keys(window.aemContext.config).length > 0) {
     console.log('✅ aemContext already initialized');
     return;
   }
@@ -35,27 +36,39 @@ import {
 
     let configMap = {};
 
-    // jeżeli backend zwraca "sheet" z data: [{key, value}, ...]
-    if (json && Array.isArray(json.data)) {
-      configMap = Object.fromEntries(
-        json.data
-          .filter(e => e && typeof e.key === 'string')
-          .map(({ key, value }) => [key, value]),
-      );
-    } else if (json && typeof json === 'object') {
-      // jeśli to już prosta mapa lub inny obiekt - przypisz bez zmian
+    // JEŚLI TO STRUKTURA ARKUSZA - PRZEKSZTAŁĆ NA PŁASKI OBIEKT
+    if (json && json.data && Array.isArray(json.data)) {
+      console.log('🔄 Transforming sheet structure to flat config');
+      configMap = {};
+      
+      json.data.forEach(item => {
+        if (item && item.key && item.value !== undefined) {
+          configMap[item.key] = item.value;
+        }
+      });
+      
+      console.log('🔧 Transformed config keys:', Object.keys(configMap));
+    } 
+    // JEŚLI TO JUŻ PŁASKI OBIEKT - UŻYJ BEZ ZMIAN
+    else if (json && typeof json === 'object') {
       configMap = json;
     } else {
       configMap = {};
     }
 
-    // nadpisujemy window.aemContext.config znormalizowanym obiektem
     window.aemContext.config = configMap;
-    console.log('✅ aemContext initialized and normalized', window.aemContext.config);
+    console.log('✅ aemContext initialized with flat structure:', window.aemContext.config);
   } catch (error) {
     console.error('❌ Failed to initialize aemContext:', error);
     window.aemContext.config = {};
   }
+  console.log('Final aemContext.config structure:', window.aemContext.config);
+console.log('Is it flat?', !window.aemContext.config.data && typeof window.aemContext.config === 'object');
+console.log('Commerce keys:', {
+  'commerce-endpoint': window.aemContext.config['commerce-endpoint'],
+  'commerce-core-endpoint': window.aemContext.config['commerce-core-endpoint'],
+  'commerce-x-api-key': window.aemContext.config['commerce-x-api-key']
+});
 })();
 
 /**
@@ -67,22 +80,7 @@ export function moveAttributes(from, to, attributes) {
   if (!attributes) {
     // eslint-disable-next-line no-param-reassign
     attributes = [...from.attributes].map(({ nodeName }) => nodeName);
-(async function() {
-  // Initialize aemContext if it doesn't exist
-  if (!window.aemContext) {
-    window.aemContext = {};
-    
-    try {
-      const response = await fetch('/config.json');
-      const configData = await response.json();
-      window.aemContext.config = configData;
-      console.log('✅ aemContext initialized');
-    } catch (error) {
-      console.error('❌ Failed to initialize aemContext:', error);
-      window.aemContext.config = {};
-    }
-  }
-})();  }
+ }
   attributes.forEach((attr) => {
     const value = from.getAttribute(attr);
     if (value) {
