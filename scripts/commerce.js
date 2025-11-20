@@ -274,18 +274,37 @@ export async function loadCommerceLazy() {
 /**
  * Initializes commerce configuration
  */
+initializeCommerce
 export async function initializeCommerce() {
-    if (!window.aemContext?.config) {
+ console.log('🚀 Starting commerce initialization...');
+  
+  if (!window.aemContext?.config) {
     console.error('❌ aemContext.config not available for commerce initialization');
     return;
   }
 
   try {
-    // Użyj config z aemContext zamiast z sessionStorage
-    const configData = window.aemContext.config;
-    console.log('🔧 Using config for initializeConfig:', configData);
+    // TRANSFORMACJA W MIEJSCU - na wypadek gdyby scripts.js nie zadziałał
+    let configData = window.aemContext.config;
+    
+    // Jeśli config nadal ma strukturę arkusza, przekształć go
+    if (configData.data && Array.isArray(configData.data)) {
+      console.log('🔄 Transforming config in commerce.js');
+      const flatConfig = {};
+      configData.data.forEach(item => {
+        if (item && item.key && item.value !== undefined) {
+          flatConfig[item.key] = item.value;
+        }
+      });
+      configData = flatConfig;
+      console.log('🔧 Transformed config in commerce.js:', configData);
+    } else {
+      console.log('🔧 Using already flat config from aemContext');
+    }
 
-    // Inicjalizuj configs.js z naszym configiem
+    console.log('🔧 Final config for initializeConfig:', configData);
+
+    // Inicjalizuj configs.js z przekształconym configiem
     initializeConfig(configData, {
       match: (key) => window.location.pathname.match(`^(/content/.*)?${key}`),
     });
