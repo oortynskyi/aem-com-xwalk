@@ -4,9 +4,11 @@
     "/content/aem-com-xwalk/configuration:/.helix/config.json",
     "/content/aem-com-xwalk/headers:/.helix/headers.json",
     "/content/aem-com-xwalk/metadata:/metadata.json",
-    "/content/aem-com-xwalk.resource/enrichment/enrichment.json:/enrichment/enrichment.json"
+    "/content/aem-com-xwalk.resource/enrichment/enrichment.json:/enrichment/enrichment.json",
+    "/conf/aem-com-xwalk/settings/cloudconfigs/commerce:/.helix/config/commerce.json"
   ],
   "includes": [
-    "/content/aem-com-xwalk/"
+    "/content/aem-com-xwalk/",
+    "/conf/aem-com-xwalk/settings/cloudconfigs/commerce"
   ]
 }
