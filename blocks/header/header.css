@@ -163,7 +163,22 @@ li.nav-drop img {
 
 header nav .nav-brand img {
   width: 128px;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Stalgast search bar */
+
+header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container {
+  display: flex;
+}
+
+header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container .nav-search-bar-button {
+  background-image: url('../../icons/search.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  font-size: 0;
+  width: 1rem;
 }
 
 /* sections */
