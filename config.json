@@ -21,14 +21,14 @@
         "environment": "Production",
         "environment-id": "8f65b7c3-4e94-4b00-86f5-c8b8f905336e",
         "store-code": "main_website_store",
-        "store-id": "main_website_store",
-        "store-name": "Default Store View",
+        "store-id": "1",
+        "store-name": "Main Store View",
         "store-url": "http://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/",
         "store-view-code": "default",
-        "store-view-id": "default",
+        "store-view-id": "1",
         "store-view-name": "Default Store View",
         "website-code": "base",
-        "website-id": "base",
+        "website-id": "1",
         "website-name": "Main Website"
       },
       "plugins": {
