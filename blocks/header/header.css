@@ -143,6 +143,7 @@ header nav[aria-expanded='true'] .nav-hamburger-icon::after {
 
 /* brand */
 header nav .nav-brand,
+header nav .nav-brand .default-content-wrapper,
 header nav .nav-brand a,
 header nav .nav-brand p {
   min-width: 128px;
@@ -173,8 +174,33 @@ header nav .nav-brand img {
 
 /* Stalgast search bar */
 
+header nav .nav-search-bar {
+  background: #f2f2f2;
+}
+
+header nav .nav-search-bar,
+header nav .nav-search-bar .search-bar-wrapper,
 header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container {
   display: flex;
+  flex: 1 1 0;
+  min-width: 192px;
+}
+
+header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+header nav .nav-search-bar .search-bar-wrapper .nav-search-bar-input {
+  flex: 1 1 0;
+  min-width: 192px;
+  padding: 5px;
+  line-height: 1;
+}
+
+header nav .nav-search-bar .search-bar-wrapper .nav-search-bar-input, 
+header nav .nav-search-bar .search-bar-wrapper .nav-search-bar-button{
+  border: 0;
+  background: transparent;
 }
 
 header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container .nav-search-bar-button {
@@ -182,13 +208,13 @@ header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container .nav-s
   background-position: center;
   background-repeat: no-repeat;
   font-size: 0;
-  width: 3rem;
+  width: 3.5rem;
+  min-width: 3.5rem;
 }
 
 /* sections */
 header nav .nav-sections {
   grid-area: sections;
-  flex: 1 1 auto;
   display: none;
   visibility: hidden;
 }

@@ -189,8 +189,8 @@ export default async function decorate(block) {
   navSearchBar.innerHTML = `
   <div class="search-bar-wrapper">
     <form class="search-bar-form-container">
+      <button class="nav-search-bar-button"></button>
       <input class="nav-search-bar-input" placeholder="${searchPlaceholder}"/>
-      <button class="nav-search-bar-button" />
     </form>
   </div>
   `;
