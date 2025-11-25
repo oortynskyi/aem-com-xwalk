@@ -797,3 +797,186 @@ function autolinkModals(element) {
     }
   });
 }
+
+//fetch products
+
+/**
+ * Fetches new products from Magento based on given options.
+ * @param {Object} options - The options for fetching products
+ * @param {string} options.sort - The sort order
+ * @param {number} options.limit - The number of products to fetch
+ * @returns {Promise<Array>} A promise that resolves to an array of products
+ */
+export async function fetchProducts(options = {}) {
+  const { sort = 'newest', limit = 8 } = options;
+
+  try {
+    const endpoint = await commerceEndpointWithQueryParams();
+    
+    // GraphQL query dla nowych produktów
+    const query = `
+      query GetNewProducts($pageSize: Int, $currentPage: Int) {
+        products(
+          filter: {}
+          pageSize: $pageSize
+          currentPage: $currentPage
+          sort: { name: ASC }
+        ) {
+          items {
+            sku
+            name
+            url_key
+            price_range {
+              minimum_price {
+                regular_price {
+                  value
+                  currency
+                }
+                final_price {
+                  value
+                  currency
+                }
+                discount {
+                  amount_off
+                  percent_off
+                }
+              }
+            }
+            image {
+              url
+              label
+            }
+            small_image {
+              url
+              label
+            }
+            thumbnail {
+              url
+              label
+            }
+            stock_status
+            __typename
+          }
+          total_count
+          page_info {
+            page_size
+            current_page
+            total_pages
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      pageSize: limit,
+      currentPage: 1
+    };
+
+    const response = await fetch(endpoint.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getHeaders('cs'),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Sprawdzamy czy są błędy GraphQL
+    if (data.errors) {
+      throw new Error(data.errors.map(error => error.message).join(', '));
+    }
+
+    const products = data?.data?.products?.items || [];
+
+    // Mapowanie danych z Magento do naszego formatu
+    return products.map(product => {
+      const price = product.price_range?.minimum_price;
+      const imageUrl = product.image?.url || product.small_image?.url || product.thumbnail?.url;
+      
+      return {
+        sku: product.sku,
+        name: product.name,
+        price: `${price?.final_price?.value || 0} ${price?.final_price?.currency || 'GBP'}`,
+        formattedPrice: `${price?.final_price?.value || 0} ${price?.final_price?.currency || 'GBP'}`,
+        originalPrice: price?.regular_price?.value !== price?.final_price?.value 
+          ? `${price?.regular_price?.value} ${price?.regular_price?.currency}`
+          : null,
+        image: imageUrl ? `https://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/${imageUrl}` : 'https://picsum.photos/300/300?random=placeholder',
+        url: `/products/${product.url_key || product.sku}`,
+        inStock: product.stock_status === 'IN_STOCK',
+        isNew: true // Możesz dodać logikę wykrywania nowych produktów
+      };
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch products from Magento:', error);
+    
+    // Fallback do prostszego zapytania jeśli główne nie działa
+    try {
+      return await fetchSimpleProducts(limit);
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+      return [];
+    }
+  }
+}
+
+/**
+ * Prostsze zapytanie jako fallback
+ */
+async function fetchSimpleProducts(limit) {
+  const endpoint = await commerceEndpointWithQueryParams();
+  const query = `
+    query GetProducts($limit: Int) {
+      products(pageSize: $limit, currentPage: 1) {
+        items {
+          sku
+          name
+          price_range {
+            minimum_price {
+              final_price {
+                value
+                currency
+              }
+            }
+          }
+          image {
+            url
+          }
+          url_key
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(endpoint.toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders('cs'),
+    },
+    body: JSON.stringify({ query, variables: { limit } }),
+  });
+
+  if (!response.ok) throw new Error('Fallback failed');
+
+  const data = await response.json();
+  const products = data?.data?.products?.items || [];
+
+  return products.map(product => ({
+    sku: product.sku,
+    name: product.name,
+    price: `${product.price_range?.minimum_price?.final_price?.value || 0} GBP`,
+    formattedPrice: `${product.price_range?.minimum_price?.final_price?.value || 0} GBP`,
+    image: product.image?.url ? `https://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/${product.image.url}` : 'https://picsum.photos/300/300?random=placeholder',
+    url: `/products/${product.url_key || product.sku}`,
+    inStock: true,
+    isNew: true
+  }));
+}

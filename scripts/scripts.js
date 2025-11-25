@@ -21,55 +21,7 @@ import {
 } from './commerce.js';
 
 
-(async function initAemContext() {
-  if (!window.aemContext) window.aemContext = {};
-  
-  // Jeśli już mamy zainicjalizowane i nie jest puste - zostawiamy
-  if (window.aemContext.config && Object.keys(window.aemContext.config).length > 0) {
-    console.log('✅ aemContext already initialized');
-    return;
-  }
 
-  try {
-    const res = await fetch('/config.json', { cache: 'no-store' });
-    const json = await res.json();
-
-    let configMap = {};
-
-    // JEŚLI TO STRUKTURA ARKUSZA - PRZEKSZTAŁĆ NA PŁASKI OBIEKT
-    if (json && json.data && Array.isArray(json.data)) {
-      console.log('🔄 Transforming sheet structure to flat config');
-      configMap = {};
-      
-      json.data.forEach(item => {
-        if (item && item.key && item.value !== undefined) {
-          configMap[item.key] = item.value;
-        }
-      });
-      
-      console.log('🔧 Transformed config keys:', Object.keys(configMap));
-    } 
-    // JEŚLI TO JUŻ PŁASKI OBIEKT - UŻYJ BEZ ZMIAN
-    else if (json && typeof json === 'object') {
-      configMap = json;
-    } else {
-      configMap = {};
-    }
-
-    window.aemContext.config = configMap;
-    console.log('✅ aemContext initialized with flat structure:', window.aemContext.config);
-  } catch (error) {
-    console.error('❌ Failed to initialize aemContext:', error);
-    window.aemContext.config = {};
-  }
-  console.log('Final aemContext.config structure:', window.aemContext.config);
-console.log('Is it flat?', !window.aemContext.config.data && typeof window.aemContext.config === 'object');
-console.log('Commerce keys:', {
-  'commerce-endpoint': window.aemContext.config['commerce-endpoint'],
-  'commerce-core-endpoint': window.aemContext.config['commerce-core-endpoint'],
-  'commerce-x-api-key': window.aemContext.config['commerce-x-api-key']
-});
-})();
 
 /**
  * Moves all the attributes from a given elmenet to another given element.
@@ -159,9 +111,9 @@ async function loadEager(doc) {
       const response = await fetch('/config.json');
       const configData = await response.json();
       window.aemContext.config = configData;
-      console.log('✅ aemContext initialized and ready');
+    
     } catch (error) {
-      console.error('❌ Failed to initialize aemContext:', error);
+    
       window.aemContext.config = {};
     }
   }
