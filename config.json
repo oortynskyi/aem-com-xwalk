@@ -2,7 +2,7 @@
   "public": {
     "default": {
       "commerce-core-endpoint": "https://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/graphql",
-      "commerce-endpoint": "https://catalog-service.adobe.io/graphql",
+      "commerce-endpoint": "https://catalog-service-sandbox.adobe.io/graphql",
       "headers": {
         "all": {
           "Store": "default"
@@ -11,24 +11,24 @@
           "Magento-Store-Code": "main_website_store",
           "Magento-Store-View-Code": "default",
           "Magento-Website-Code": "base",
-          "x-api-key": "b84b2fc8dc0c4b4fa7d6ac87873ab2ae",
+          "x-api-key": "c57f01bf4a004a3ab2ab7cc1ab8b4b87",
           "Magento-Environment-Id": "8f65b7c3-4e94-4b00-86f5-c8b8f905336e"
         }
       },
       "commerce-assets-enabled": false,
       "analytics": {
         "base-currency-code": "GBP",
-        "environment": "Production",
+        "environment": "Testing",
         "environment-id": "8f65b7c3-4e94-4b00-86f5-c8b8f905336e",
         "store-code": "main_website_store",
-        "store-id": "1",
-        "store-name": "Main Store View",
+        "store-id": "main_website_store",
+        "store-name": "Default Store View",
         "store-url": "http://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/",
         "store-view-code": "default",
-        "store-view-id": "1",
+        "store-view-id": "default",
         "store-view-name": "Default Store View",
         "website-code": "base",
-        "website-id": "1",
+        "website-id": "base",
         "website-name": "Main Website"
       },
       "plugins": {
