@@ -168,12 +168,13 @@ export default async function decorate(block) {
   nav.id = 'nav';
   while (fragment.firstElementChild) nav.append(fragment.firstElementChild);
 
-  const classes = ['brand', 'sections', 'tools'];
+  const classes = ['brand', 'search-bar', 'sections', 'tools'];
   classes.forEach((c, i) => {
     const section = nav.children[i];
     if (section) section.classList.add(`nav-${c}`);
   });
 
+  /** Stalgast Logo */
   const navBrand = nav.querySelector('.nav-brand');
   const brandLink = navBrand.querySelector('.button');
   if (brandLink) {
@@ -181,6 +182,22 @@ export default async function decorate(block) {
     brandLink.closest('.button-container').className = '';
   }
 
+  /** Stalgast Search Bar */
+  const navSearchBar = nav.querySelector('.nav-search-bar');
+
+  const searchPlaceholder = navSearchBar.querySelector(".default-content-wrapper > p").textContent ?? 'Search...';
+  navSearchBar.innerHTML = `
+  <div class="search-bar-wrapper">
+    <form class="search-bar-form-container">
+      <button class="nav-search-bar-button"></button>
+      <input class="nav-search-bar-input" placeholder="${searchPlaceholder}"/>
+    </form>
+  </div>
+  `;
+
+  /** Stalgast Important Links 
+   * TO DO
+  */
   const navSections = nav.querySelector('.nav-sections');
   if (navSections) {
     navSections
