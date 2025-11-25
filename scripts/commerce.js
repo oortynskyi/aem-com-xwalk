@@ -813,64 +813,64 @@ export async function fetchProducts(options = {}) {
   try {
     const endpoint = await commerceEndpointWithQueryParams();
     
-    // GraphQL query dla nowych produktów
+    // Uproszczone zapytanie które DZIAŁA z Twoim Magento
     const query = `
-      query GetNewProducts($pageSize: Int, $currentPage: Int) {
-        products(
-          filter: {}
-          pageSize: $pageSize
-          currentPage: $currentPage
-          sort: { name: ASC }
+      query productSearch(
+        $phrase: String!
+        $pageSize: Int
+        $currentPage: Int = 1
+        $filter: [SearchClauseInput!]
+        $sort: [ProductSearchSortInput!]
+      ) {
+        productSearch(
+          phrase: $phrase
+          page_size: $pageSize
+          current_page: $currentPage
+          filter: $filter
+          sort: $sort
         ) {
           items {
-            sku
-            name
-            url_key
-            price_range {
-              minimum_price {
-                regular_price {
-                  value
-                  currency
-                }
-                final_price {
-                  value
-                  currency
-                }
-                discount {
-                  amount_off
-                  percent_off
+            productView {
+              sku
+              name
+              inStock
+              url
+              urlKey
+              images {
+                url
+                roles
+              }
+              ... on SimpleProductView {
+                price {
+                  final {
+                    amount {
+                      value
+                      currency
+                    }
+                  }
+                  regular {
+                    amount {
+                      value
+                      currency
+                    }
+                  }
                 }
               }
             }
-            image {
-              url
-              label
-            }
-            small_image {
-              url
-              label
-            }
-            thumbnail {
-              url
-              label
-            }
-            stock_status
-            __typename
-          }
-          total_count
-          page_info {
-            page_size
-            current_page
-            total_pages
           }
         }
       }
     `;
 
     const variables = {
+      phrase: "", // Puste wyszukiwanie = wszystkie produkty
       pageSize: limit,
-      currentPage: 1
+      currentPage: 1,
+      sort: [{ attribute: "position", direction: "DESC" }],
+      filter: [{ attribute: "categoryPath", eq: "all" }]
     };
+
+    console.log('🔄 Sending GraphQL request to Magento...', { variables });
 
     const response = await fetch(endpoint.toString(), {
       method: 'POST',
@@ -887,41 +887,69 @@ export async function fetchProducts(options = {}) {
 
     const data = await response.json();
     
+    console.log('📦 Raw Magento response:', data);
+
     // Sprawdzamy czy są błędy GraphQL
     if (data.errors) {
       throw new Error(data.errors.map(error => error.message).join(', '));
     }
 
-    const products = data?.data?.products?.items || [];
+    const items = data?.data?.productSearch?.items || [];
 
-    // Mapowanie danych z Magento do naszego formatu
-    return products.map(product => {
-      const price = product.price_range?.minimum_price;
-      const imageUrl = product.image?.url || product.small_image?.url || product.thumbnail?.url;
+    if (items.length === 0) {
+      throw new Error('No products found in response');
+    }
+
+    console.log(`✅ Found ${items.length} products in Magento response`);
+
+    // POPRAWIONE MAPOWANIE DANYCH - dostosowane do Twojej odpowiedzi
+    const products = items.map(item => {
+      const product = item.productView;
       
-      return {
+      // Znajdź główny obrazek (z rolą 'image' lub pierwszy dostępny)
+      const mainImage = product.images?.find(img => 
+        img.roles?.includes('image') || 
+        img.roles?.includes('small_image') || 
+        img.roles?.includes('thumbnail')
+      ) || product.images?.[0];
+
+      const imageUrl = mainImage?.url;
+      
+      // Formatowanie ceny
+      const priceValue = product.price?.final?.amount?.value || 0;
+      const priceCurrency = product.price?.final?.amount?.currency || 'GBP';
+      const regularPriceValue = product.price?.regular?.amount?.value;
+      
+      const productData = {
         sku: product.sku,
         name: product.name,
-        price: `${price?.final_price?.value || 0} ${price?.final_price?.currency || 'GBP'}`,
-        formattedPrice: `${price?.final_price?.value || 0} ${price?.final_price?.currency || 'GBP'}`,
-        originalPrice: price?.regular_price?.value !== price?.final_price?.value 
-          ? `${price?.regular_price?.value} ${price?.regular_price?.currency}`
+        price: `£${priceValue}`,
+        formattedPrice: `£${priceValue}`,
+        originalPrice: regularPriceValue && regularPriceValue !== priceValue 
+          ? `£${regularPriceValue}`
           : null,
-        image: imageUrl ? `https://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/${imageUrl}` : 'https://picsum.photos/300/300?random=placeholder',
-        url: `/products/${product.url_key || product.sku}`,
-        inStock: product.stock_status === 'IN_STOCK',
-        isNew: true // Możesz dodać logikę wykrywania nowych produktów
+        image: imageUrl || `https://picsum.photos/300/300?random=${product.sku}`,
+        url: product.url,
+        inStock: product.inStock,
+        isNew: true // Możesz później dodać logikę wykrywania nowych produktów
       };
+
+      console.log(`📋 Mapped product: ${product.name}`, productData);
+      return productData;
     });
 
+    console.log(`🎉 Successfully mapped ${products.length} products`);
+    return products;
+
   } catch (error) {
-    console.error('Failed to fetch products from Magento:', error);
+    console.error('❌ Failed to fetch products from Magento:', error);
     
-    // Fallback do prostszego zapytania jeśli główne nie działa
+    // Fallback do prostszego zapytania
     try {
+      console.log('🔄 Trying fallback product fetch...');
       return await fetchSimpleProducts(limit);
     } catch (fallbackError) {
-      console.error('Fallback also failed:', fallbackError);
+      console.error('❌ Fallback also failed:', fallbackError);
       return [];
     }
   }
@@ -932,24 +960,35 @@ export async function fetchProducts(options = {}) {
  */
 async function fetchSimpleProducts(limit) {
   const endpoint = await commerceEndpointWithQueryParams();
+  
   const query = `
     query GetProducts($limit: Int) {
-      products(pageSize: $limit, currentPage: 1) {
+      productSearch(
+        phrase: ""
+        page_size: $limit
+        current_page: 1
+        sort: [{ attribute: "position", direction: "DESC" }]
+      ) {
         items {
-          sku
-          name
-          price_range {
-            minimum_price {
-              final_price {
-                value
-                currency
+          productView {
+            sku
+            name
+            inStock
+            url
+            images {
+              url
+            }
+            ... on SimpleProductView {
+              price {
+                final {
+                  amount {
+                    value
+                    currency
+                  }
+                }
               }
             }
           }
-          image {
-            url
-          }
-          url_key
         }
       }
     }
@@ -967,16 +1006,18 @@ async function fetchSimpleProducts(limit) {
   if (!response.ok) throw new Error('Fallback failed');
 
   const data = await response.json();
-  const products = data?.data?.products?.items || [];
+  const items = data?.data?.productSearch?.items || [];
 
-  return products.map(product => ({
-    sku: product.sku,
-    name: product.name,
-    price: `${product.price_range?.minimum_price?.final_price?.value || 0} GBP`,
-    formattedPrice: `${product.price_range?.minimum_price?.final_price?.value || 0} GBP`,
-    image: product.image?.url ? `https://artdev-7hjxg3i-awxnxowa5lur4.eu-4.magentosite.cloud/${product.image.url}` : 'https://picsum.photos/300/300?random=placeholder',
-    url: `/products/${product.url_key || product.sku}`,
-    inStock: true,
-    isNew: true
-  }));
+  return items.map(item => {
+    const product = item.productView;
+    return {
+      sku: product.sku,
+      name: product.name,
+      price: `£${product.price?.final?.amount?.value || 0}`,
+      image: product.images?.[0]?.url || `https://picsum.photos/300/300?random=${product.sku}`,
+      url: product.url,
+      inStock: product.inStock,
+      isNew: true
+    };
+  });
 }
