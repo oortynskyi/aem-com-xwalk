@@ -20,7 +20,7 @@ document.querySelector('header').insertAdjacentElement('afterbegin', overlay);
 function closeOnEscape(e) {
   if (e.code === 'Escape') {
     const nav = document.getElementById('nav');
-    const navSections = nav.querySelector('.nav-sections');
+    const navSections = nav.querySelector('.nav-important-links');
     const navSectionExpanded = navSections.querySelector('[aria-expanded="true"]');
     if (navSectionExpanded && isDesktop.matches) {
       toggleAllNavSections(navSections);
@@ -39,7 +39,7 @@ function closeOnEscape(e) {
 function closeOnFocusLost(e) {
   const nav = e.currentTarget;
   if (!nav.contains(e.relatedTarget)) {
-    const navSections = nav.querySelector('.nav-sections');
+    const navSections = nav.querySelector('.nav-important-links');
     const navSectionExpanded = navSections.querySelector('[aria-expanded="true"]');
     if (navSectionExpanded && isDesktop.matches) {
       toggleAllNavSections(navSections, false);
@@ -55,7 +55,7 @@ function openOnKeydown(e) {
   const isNavDrop = focused.className === 'nav-drop';
   if (isNavDrop && (e.code === 'Enter' || e.code === 'Space')) {
     const dropExpanded = focused.getAttribute('aria-expanded') === 'true';
-    toggleAllNavSections(focused.closest('.nav-sections'));
+    toggleAllNavSections(focused.closest('.nav-important-links'));
     focused.setAttribute('aria-expanded', dropExpanded ? 'false' : 'true');
   }
 }
@@ -71,7 +71,7 @@ function focusNavSection() {
  */
 function toggleAllNavSections(sections, expanded = false) {
   sections
-    .querySelectorAll('.nav-sections .default-content-wrapper > ul > li')
+    .querySelectorAll('.nav-important-links .default-content-wrapper > ul > li')
     .forEach((section) => {
       section.setAttribute('aria-expanded', expanded);
     });
@@ -167,13 +167,13 @@ export default async function decorate(block) {
   nav.id = 'nav';
   while (fragment.firstElementChild) nav.append(fragment.firstElementChild);
 
-  const classes = ['brand', 'search-bar', 'sections', 'tools'];
+  const classes = ['brand', 'search-bar', 'important-links', 'tools'];
   classes.forEach((c, i) => {
     const section = nav.children[i];
     if (section) section.classList.add(`nav-${c}`);
   });
 
-  /** Stalgast Logo */
+  /** Logo */
   const navBrand = nav.querySelector('.nav-brand');
   const brandLink = navBrand.querySelector('.button');
   if (brandLink) {
@@ -181,7 +181,7 @@ export default async function decorate(block) {
     brandLink.closest('.button-container').className = '';
   }
 
-  /** Stalgast Search Bar */
+  /** Search Bar */
   const navSearchBar = nav.querySelector('.nav-search-bar');
 
   const searchPlaceholder = navSearchBar.querySelector(".default-content-wrapper > p").textContent ?? 'Search...';
@@ -194,33 +194,24 @@ export default async function decorate(block) {
   </div>
   `;
 
-  /** Stalgast Important Links 
-   * TO DO
-  */
-  const navSections = nav.querySelector('.nav-sections');
+  /** Important Links */
+  const navSections = nav.querySelector('.nav-important-links');
   if (navSections) {
+    const importantLinksIcons = ['cloud-download-blue', 'map-pin-blue', 'circle-user-blue'];
     navSections
       .querySelectorAll(':scope .default-content-wrapper > ul > li')
-      .forEach((navSection) => {
-        if (navSection.querySelector('ul')) navSection.classList.add('nav-drop');
-        setupSubmenu(navSection);
-        navSection.addEventListener('click', (event) => {
-          if (event.target.tagName === 'A') return;
-          if (!isDesktop.matches) {
-            navSection.classList.toggle('active');
-          }
-        });
-        navSection.addEventListener('mouseenter', () => {
-          toggleAllNavSections(navSections);
-          if (isDesktop.matches) {
-            if (!navSection.classList.contains('nav-drop')) {
-              overlay.classList.remove('show');
-              return;
-            }
-            navSection.setAttribute('aria-expanded', 'true');
-            overlay.classList.add('show');
-          }
-        });
+      .forEach((navSection, idx) => {
+        const iconImg = document.createElement('img');
+        iconImg.src = `../../icons/${importantLinksIcons[idx]}.svg`;
+        iconImg.alt = 'icon';
+        
+        const linkNode = navSection.querySelector('a');
+        if(linkNode){
+          linkNode.prepend(iconImg);
+        }
+        else{
+          navSection.prepend(iconImg);
+        }
       });
   }
 
