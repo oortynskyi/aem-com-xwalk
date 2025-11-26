@@ -1,6 +1,6 @@
 .large-links {
     display: flex;
-    justify-content: space-around;
     background-color: var(--color-accent);
-    padding: 2rem;
+    margin-left: auto;
+    width: fit-content; 
 }
