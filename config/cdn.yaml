@@ -1,5 +1,16 @@
-cdn:
-  cache:
-    invalidation:
-      onDeploy: all
-
+kind: "CDN"
+version: "1"
+metadata:
+  envTypes: ["dev", "stage", "prod"]
+data:
+  authentication: # The main authentication configuration
+    authenticators: # The list of authenticators
+       - name: purge-auth # The name of the authenticator
+         type: purge  # The type of the authenticator, must be purge
+         purgeKey1: ${{CDN_PURGEKEY_25112025}} # The first purge key, must be referenced by the Cloud Manager secret-type environment variable name ${{CDN_EDGEKEY_073124}}
+    rules: # The list of authentication rules
+       - name: purge-auth-rule # The name of the rule
+         when: { reqProperty: tier, equals: "publish" } # The condition when the rule should be applied
+         action: # The action to be taken when the rule is applied
+           type: authenticate # The type of the action, must be authenticate
+           authenticator: purge-auth # The name of the authenticator to be used, must match the name from the above authenticators list
