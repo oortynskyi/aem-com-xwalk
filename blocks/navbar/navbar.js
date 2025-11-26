@@ -2,86 +2,115 @@ export default function decorate(block) {
   const root = block.querySelector('ul');
   if (!root) return;
 
+  const setExpanded = (el, state) => el?.setAttribute('aria-expanded', state);
+
+  const openItem = (item) => {
+    item.classList.add('open');
+    setExpanded(item.querySelector('.nb-link, .nb-label'), true);
+  };
+
+  const closeItem = (item) => {
+    item.classList.remove('open');
+    setExpanded(item.querySelector('.nb-link, .nb-label'), false);
+  };
+
   function process(list, level = 1) {
     [...list.children].forEach((li) => {
       li.classList.add('nb-item', `nb-level-${level}`);
 
-      const link = li.querySelector(':scope > a');
-
-      if (link) link.classList.add('nb-link');
-      else if (li.firstChild && li.firstChild.nodeType === Node.TEXT_NODE) {
+      let control = li.querySelector(':scope > a');
+      if (control) {
+        control.classList.add('nb-link');
+      } else if (li.firstChild?.nodeType === Node.TEXT_NODE) {
         const span = document.createElement('span');
-        span.className = 'nb-link nb-label';
         span.textContent = li.firstChild.textContent.trim();
+        span.className = 'nb-link nb-label';
         li.replaceChild(span, li.firstChild);
+        control = span;
       }
-
-      const control = li.querySelector(':scope > a, :scope > span');
 
       const childUl = li.querySelector(':scope > ul');
-      if (childUl) {
-        li.classList.add('has-children');
-        childUl.classList.add('nb-submenu');
+      if (!childUl) return;
 
-        if (control) {
-          control.setAttribute('aria-haspopup', 'true');
-          control.setAttribute('aria-expanded', 'false');
-          control.setAttribute('role', 'button');
-        }
+      li.classList.add('has-children');
+      childUl.classList.add('nb-submenu');
 
-        let closeTimer;
-        li.addEventListener('mouseenter', () => {
-          clearTimeout(closeTimer);
-          li.classList.add('open');
-          control?.setAttribute('aria-expanded', 'true');
+      if (control) {
+        control.setAttribute('role', 'button');
+        control.setAttribute('aria-haspopup', 'true');
+        setExpanded(control, false);
+      }
+
+      let closeTimer;
+
+      li.addEventListener('mouseenter', () => {
+        clearTimeout(closeTimer);
+        openItem(li);
+      });
+
+      li.addEventListener('mouseleave', () => {
+        closeTimer = setTimeout(() => {
+          closeItem(li);
+        }, 150);
+      });
+
+      li.addEventListener('focusin', () => openItem(li));
+
+      li.addEventListener('focusout', (e) => {
+        if (!li.contains(e.relatedTarget)) closeItem(li);
+      });
+
+      if (control) {
+        control.addEventListener('click', (e) => {
+          e.preventDefault();
+          li.classList.toggle('open');
+          setExpanded(control, li.classList.contains('open'));
         });
 
-        li.addEventListener('focusin', () => {
-          li.classList.add('open');
-          if (control) control.setAttribute('aria-expanded', 'true');
-        });
-
-        li.addEventListener('focusout', (e) => {
-          if (!li.contains(e.relatedTarget)) {
-            li.classList.remove('open');
-            if (control) control.setAttribute('aria-expanded', 'false');
+        control.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowDown') {
+            childUl.querySelector('a, span')?.focus();
+            e.preventDefault();
+          }
+          if (e.key === 'Escape') {
+            closeItem(li);
+            control.focus();
           }
         });
-
-        li.addEventListener('mouseleave', () => {
-          closeTimer = setTimeout(() => {
-            li.classList.remove('open');
-            control?.setAttribute('aria-expanded', 'false');
-          }, 150);
-          console.log("DEBUG timer", closeTimer)
-        });
-
-        if (control) {
-          control.addEventListener('click', (e) => {
-            e.preventDefault();
-            li.classList.toggle('open');
-            control.setAttribute('aria-expanded', li.classList.contains('open'));
-          });
-
-          control.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowDown') {
-              const first = childUl.querySelector('a, span');
-              if (first) first.focus();
-              e.preventDefault();
-            } else if (e.key === 'Escape') {
-              li.classList.remove('open');
-              control.setAttribute('aria-expanded', 'false');
-              control.focus();
-            }
-          });
-        }
-
-        process(childUl, level + 1);
       }
+
+      process(childUl, level + 1);
     });
   }
 
   block.classList.add('navbar');
   root.classList.add('nb-root');
   process(root);
+
+  const items = [...root.querySelectorAll('.nb-level-1.nb-item')];
+  const firstItem = items[0];
+
+  if (firstItem && location.pathname === "/") openItem(firstItem);
+
+  items.forEach((item) => {
+    item.addEventListener("mouseenter", () => {
+      if (location.pathname === "/") {
+        if (item !== firstItem) openItem(item);
+      } else {
+        items.forEach((i) => { if (i !== item) closeItem(i); });
+        openItem(item);
+      }
+    });
+
+    item.addEventListener("mouseleave", () => {
+      setTimeout(() => {
+        if (location.pathname === "/") {
+          const isAnyOtherOpen = items.some(i => i !== firstItem && i.classList.contains('open'));
+          if (!isAnyOtherOpen) openItem(firstItem);
+        } else {
+          closeItem(item);
+        }
+      }, 150);
+    });
+  });
 }

@@ -52,16 +52,10 @@
   content: "▲";
 }
 
-/* .navbar .nb-level-1 > .nb-link:hover,
-.navbar .nb-level-1.open > .nb-link,
-.navbar .nb-level-1:focus-within > .nb-link {
-  color: var(--color-neutral-900);
-} */
-
 .navbar .nb-submenu {
   display: none;
   position: absolute;
-  left: 0;
+  left: -90%;
   top: 70%;
   background: var(--color-neutral-50);
   border: 1px solid #ddd;
@@ -69,6 +63,7 @@
   min-width: 200px;
   max-width: 90vw;
   white-space: nowrap;
+  font-size: 14px;
   z-index: 1000;
   padding: 0.25rem 0;
   box-sizing: border-box;
