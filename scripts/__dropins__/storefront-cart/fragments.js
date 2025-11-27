@@ -308,23 +308,11 @@ ${n}`, c = `fragment CART_FRAGMENT on Cart {
         currency
         value
       }
-      gift_wrapping_for_items_incl_tax {
-        currency
-        value
-      }
       gift_wrapping_for_order {
         currency
         value
       }
-      gift_wrapping_for_order_incl_tax {
-        currency
-        value
-      }
       printed_card {
-        currency
-        value
-      }
-      printed_card_incl_tax {
         currency
         value
       }
