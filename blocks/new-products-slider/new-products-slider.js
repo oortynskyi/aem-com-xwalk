@@ -1,4 +1,4 @@
-import { fetchPlaceholders, fetchProducts } from '../../scripts/commerce.js';
+import { fetchPlaceholders, fetchProducts, getProductLink } from '../../scripts/commerce.js';
 
 function updateActiveSlide(slide) {
   const block = slide.closest('.new-products-slider');
@@ -10,13 +10,6 @@ function updateActiveSlide(slide) {
 
   slides.forEach((aSlide, idx) => {
     aSlide.setAttribute('aria-hidden', idx !== slideIndex);
-    aSlide.querySelectorAll('a').forEach((link) => {
-      if (idx !== slideIndex) {
-        link.setAttribute('tabindex', '-1');
-      } else {
-        link.removeAttribute('tabindex');
-      }
-    });
   });
 
   indicators.forEach((indicator, idx) => {
@@ -81,33 +74,161 @@ function bindEvents(block) {
   });
 }
 
-function parseConfiguration(block) {
+/**
+ * NOWA FUNKCJA - Parsowanie konfiguracji z Google Docs przez AEM
+ */
+async function parseConfigurationFromGoogleDocs(block) {
   const config = {
     productsPerSlide: 4,
     totalProducts: 8
   };
   
-  const textContent = block.textContent || '';
-  
-  // Format tabeli
-  const tableMatch = textContent.match(/\|\s*Produkty na slajd\s*\|\s*(\d+)\s*\|/i);
-  if (tableMatch) {
-    config.productsPerSlide = parseInt(tableMatch[1]);
+  try {
+    // Szukamy linku do Google Docs w bloku
+    const googleDocsLink = block.querySelector('a[href*="docs.google.com"]');
+    
+    if (googleDocsLink) {
+      const docsUrl = googleDocsLink.href;
+      console.log('📊 Found Google Docs link:', docsUrl);
+      
+      // Konwersja URL Google Docs na URL do pobrania jako JSON
+      const sheetId = extractGoogleSheetId(docsUrl);
+      if (sheetId) {
+        const parameters = await fetchGoogleSheetParameters(sheetId);
+        console.log('📋 Parameters from Google Sheet:', parameters);
+        
+        // Mapowanie parametrów na konfigurację
+        parameters.forEach(param => {
+          if (param.parameter === 'productsPerSlide') {
+            config.productsPerSlide = parseInt(param.quantity) || 4;
+          } else if (param.parameter === 'totalProducts') {
+            config.totalProducts = parseInt(param.quantity) || 8;
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('❌ Could not fetch from Google Docs, using defaults:', error);
   }
   
-  const totalTableMatch = textContent.match(/\|\s*Łączna liczba produktów\s*\|\s*(\d+)\s*\|/i);
-  if (totalTableMatch) {
-    config.totalProducts = parseInt(totalTableMatch[1]);
+  // Fallback: parsowanie z tekstu w bloku
+  if (config.productsPerSlide === 4) {
+    const textContent = block.textContent;
+    const productsPerSlideMatch = textContent.match(/Produkty na slajd\s*:\s*(\d+)/i);
+    if (productsPerSlideMatch) {
+      config.productsPerSlide = parseInt(productsPerSlideMatch[1]);
+    }
   }
   
+  console.log('🎯 Final configuration:', config);
   return config;
 }
 
+/**
+ * Ekstrakcja ID z URL Google Sheets
+ */
+function extractGoogleSheetId(url) {
+  const matches = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return matches ? matches[1] : null;
+}
+
+/**
+ * Pobieranie parametrów z Google Sheets przez AEM proxy
+ */
+async function fetchGoogleSheetParameters(sheetId) {
+  try {
+    // Używamy AEM jako proxy do Google Sheets
+    const aemEndpoint = `/content/dam/google-sheets-import/${sheetId}.json`;
+    const response = await fetch(aemEndpoint);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return parseSheetData(data);
+    }
+  } catch (error) {
+    console.warn('AEM proxy failed, trying direct approach:', error);
+    
+    // Fallback: bezpośrednie pobieranie jako CSV
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+    const csvResponse = await fetch(csvUrl);
+    if (csvResponse.ok) {
+      const csvText = await csvResponse.text();
+      return parseCSVData(csvText);
+    }
+  }
+  
+  return [];
+}
+
+/**
+ * Parsowanie danych z JSON (AEM)
+ */
+function parseSheetData(data) {
+  const parameters = [];
+  
+  if (data && data.sheets && data.sheets[0]) {
+    const sheet = data.sheets[0];
+    const rows = sheet.data[0].rowData;
+    
+    // Pomijamy nagłówek, zaczynamy od wiersza 1
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.values && row.values.length >= 2) {
+        const parameter = row.values[0].formattedValue;
+        const quantity = row.values[1].formattedValue;
+        
+        if (parameter && quantity) {
+          parameters.push({
+            parameter: parameter.trim(),
+            quantity: quantity.trim()
+          });
+        }
+      }
+    }
+  }
+  
+  return parameters;
+}
+
+/**
+ * Parsowanie danych CSV
+ */
+function parseCSVData(csvText) {
+  const parameters = [];
+  const lines = csvText.split('\n');
+  
+  // Pomijamy nagłówek, zaczynamy od linii 1
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line) {
+      const [parameter, quantity] = line.split(',').map(item => item.trim().replace(/"/g, ''));
+      
+      if (parameter && quantity) {
+        parameters.push({
+          parameter: parameter,
+          quantity: quantity
+        });
+      }
+    }
+  }
+  
+  return parameters;
+}
 function createProductCard(product) {
   const card = document.createElement('div');
   card.className = 'new-products-card';
   
-  // Image
+  const productLink = document.createElement('a');
+  productLink.href = getProductLink(product.urlKey, product.sku);
+  productLink.className = 'product-link';
+  
+  if (product.isNew) {
+    const newBadge = document.createElement('span');
+    newBadge.className = 'new-products-badge';
+    newBadge.textContent = 'NOWOŚĆ';
+    productLink.appendChild(newBadge);
+  }
+  
   const imageContainer = document.createElement('div');
   imageContainer.className = 'new-products-image';
   
@@ -117,70 +238,114 @@ function createProductCard(product) {
   image.loading = 'lazy';
   imageContainer.appendChild(image);
   
-  // Badge for new products
-  if (product.isNew) {
-    const badge = document.createElement('span');
-    badge.className = 'new-products-badge';
-    badge.textContent = 'New';
-    imageContainer.appendChild(badge);
-  }
+  productLink.appendChild(imageContainer);
   
-  // Stock status badge
-  if (!product.inStock) {
-    const outOfStockBadge = document.createElement('span');
-    outOfStockBadge.className = 'new-products-badge out-of-stock';
-    outOfStockBadge.textContent = 'Out of Stock';
-    outOfStockBadge.style.backgroundColor = '#666';
-    imageContainer.appendChild(outOfStockBadge);
-  }
-  
-  card.appendChild(imageContainer);
-  
-  // Content
   const content = document.createElement('div');
   content.className = 'new-products-content';
   
-  // Title
   const title = document.createElement('h3');
   title.className = 'new-products-title';
   title.textContent = product.name;
   content.appendChild(title);
   
-  // Price
   const priceContainer = document.createElement('div');
-  priceContainer.className = 'new-products-price';
+  priceContainer.className = 'new-products-price-container';
   
-  if (product.originalPrice) {
-    const originalPrice = document.createElement('span');
-    originalPrice.className = 'new-products-original-price';
-    originalPrice.textContent = product.originalPrice;
-    priceContainer.appendChild(originalPrice);
+  const netPrice = document.createElement('div');
+  netPrice.className = 'new-products-net-price';
+  
+  if (product.price && product.price.final) {
+    netPrice.textContent = `£${product.price.final.amount.value}`;
+  } else {
+    netPrice.textContent = product.formattedPrice || '£25.99';
   }
   
-  const currentPrice = document.createElement('span');
-  currentPrice.className = 'new-products-current-price';
-  currentPrice.textContent = product.formattedPrice || product.price;
-  priceContainer.appendChild(currentPrice);
+  priceContainer.appendChild(netPrice);
   
+  const grossPrice = document.createElement('div');
+  grossPrice.className = 'new-products-gross-price';
+  
+  if (product.price && product.price.final) {
+    const nettoValue = product.price.final.amount.value;
+    const bruttoValue = (nettoValue * 1.23).toFixed(2);
+    grossPrice.textContent = `£${bruttoValue} brutto`;
+  } else {
+    grossPrice.textContent = 'Do modyfikacji - brak danych brutto';
+  }
+  
+  priceContainer.appendChild(grossPrice);
   content.appendChild(priceContainer);
   
-  // Button
-  const button = document.createElement('a');
-  button.href = product.url;
-  button.className = 'new-products-button';
-  button.textContent = 'View Product';
+  // PANEL DODAWANIA - BEZ PRZERW
+  const addToCartPanel = document.createElement('div');
+  addToCartPanel.className = 'add-to-cart-panel';
   
-  if (!product.inStock) {
-    button.style.opacity = '0.6';
-    button.style.pointerEvents = 'none';
-  }
+  const quantityControls = document.createElement('div');
+  quantityControls.className = 'quantity-controls';
   
-  content.appendChild(button);
+  const inputContainer = document.createElement('div');
+  inputContainer.className = 'quantity-input-container';
   
+  const quantityInput = document.createElement('input');
+  quantityInput.type = 'number';
+  quantityInput.className = 'quantity-input';
+  quantityInput.value = '1';
+  quantityInput.min = '1';
+  quantityInput.max = '10';
+  
+  inputContainer.appendChild(quantityInput);
+  
+  const arrowsContainer = document.createElement('div');
+  arrowsContainer.className = 'quantity-arrows';
+  
+  const increaseBtn = document.createElement('button');
+  increaseBtn.type = 'button';
+  increaseBtn.className = 'quantity-arrow increase';
+  increaseBtn.innerHTML = '▲';
+  increaseBtn.setAttribute('aria-label', 'Zwiększ ilość');
+  
+  const decreaseBtn = document.createElement('button');
+  decreaseBtn.type = 'button';
+  decreaseBtn.className = 'quantity-arrow decrease';
+  decreaseBtn.innerHTML = '▼';
+  decreaseBtn.setAttribute('aria-label', 'Zmniejsz ilość');
+  
+  arrowsContainer.appendChild(increaseBtn);
+  arrowsContainer.appendChild(decreaseBtn);
+  
+  quantityControls.appendChild(inputContainer);
+  quantityControls.appendChild(arrowsContainer);
+  
+  const addToCartButton = document.createElement('button');
+  addToCartButton.type = 'button';
+  addToCartButton.className = 'add-to-cart-button';
+  addToCartButton.textContent = 'Dodaj do koszyka';
+  
+  addToCartPanel.appendChild(quantityControls);
+  addToCartPanel.appendChild(addToCartButton);
+  content.appendChild(addToCartPanel);
+  
+  decreaseBtn.addEventListener('click', () => {
+    const currentValue = parseInt(quantityInput.value) || 1;
+    if (currentValue > 1) {
+      quantityInput.value = currentValue - 1;
+    }
+  });
+  
+  increaseBtn.addEventListener('click', () => {
+    const currentValue = parseInt(quantityInput.value) || 1;
+    if (currentValue < 10) {
+      quantityInput.value = currentValue + 1;
+    }
+  });
+  
+  card.appendChild(productLink);
   card.appendChild(content);
   
   return card;
 }
+
+
 
 function createSlide(products, slideIndex, sliderId) {
   const slide = document.createElement('li');
@@ -208,8 +373,8 @@ export default async function decorate(block) {
   
   const placeholders = await fetchPlaceholders();
   
-  // Parse configuration from text content
-  const config = parseConfiguration(block);
+  // Parse configuration from Google Docs
+  const config = await parseConfigurationFromGoogleDocs(block);
   const productsPerSlide = config.productsPerSlide;
   const totalProducts = config.totalProducts;
   
@@ -268,7 +433,10 @@ export default async function decorate(block) {
   slidesWrapper.className = 'new-products-slides';
   slidesWrapper.setAttribute('role', 'tablist');
 
-  // Create navigation
+  // Ustawienie zmiennej CSS dla liczby produktów na slajd
+  slidesWrapper.style.setProperty('--products-per-slide', productsPerSlide);
+
+  // Create navigation - ZAWSZE WIDOCZNE
   const navigation = document.createElement('div');
   navigation.className = 'new-products-navigation';
   
@@ -276,39 +444,13 @@ export default async function decorate(block) {
   prevButton.type = 'button';
   prevButton.className = 'new-products-prev';
   prevButton.setAttribute('aria-label', placeholders.previousSlide || 'Previous Slide');
-  
-  const prevSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  prevSvg.setAttribute('width', '24');
-  prevSvg.setAttribute('height', '24');
-  prevSvg.setAttribute('viewBox', '0 0 24 24');
-  prevSvg.setAttribute('fill', 'none');
-  
-  const prevPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  prevPath.setAttribute('d', 'M15 18L9 12L15 6');
-  prevPath.setAttribute('stroke', 'currentColor');
-  prevPath.setAttribute('stroke-width', '2');
-  
-  prevSvg.appendChild(prevPath);
-  prevButton.appendChild(prevSvg);
+  prevButton.innerHTML = '‹';
   
   const nextButton = document.createElement('button');
   nextButton.type = 'button';
   nextButton.className = 'new-products-next';
   nextButton.setAttribute('aria-label', placeholders.nextSlide || 'Next Slide');
-  
-  const nextSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  nextSvg.setAttribute('width', '24');
-  nextSvg.setAttribute('height', '24');
-  nextSvg.setAttribute('viewBox', '0 0 24 24');
-  nextSvg.setAttribute('fill', 'none');
-  
-  const nextPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  nextPath.setAttribute('d', 'M9 18L15 12L9 6');
-  nextPath.setAttribute('stroke', 'currentColor');
-  nextPath.setAttribute('stroke-width', '2');
-  
-  nextSvg.appendChild(nextPath);
-  nextButton.appendChild(nextSvg);
+  nextButton.innerHTML = '›';
   
   navigation.appendChild(prevButton);
   navigation.appendChild(nextButton);
@@ -355,11 +497,11 @@ export default async function decorate(block) {
     }
   });
 
-  // Set CSS variable for products per slide
-  slidesWrapper.style.setProperty('--products-per-slide', productsPerSlide);
-
   container.appendChild(slidesWrapper);
+  
+  // ZAWSZE DODAJEMY NAWIGACJĘ (nawet dla pojedynczego slajdu)
   container.appendChild(navigation);
+  
   block.appendChild(container);
   
   if (indicatorsContainer) {

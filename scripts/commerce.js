@@ -921,18 +921,19 @@ export async function fetchProducts(options = {}) {
       const regularPriceValue = product.price?.regular?.amount?.value;
       
       const productData = {
-        sku: product.sku,
-        name: product.name,
-        price: `£${priceValue}`,
-        formattedPrice: `£${priceValue}`,
-        originalPrice: regularPriceValue && regularPriceValue !== priceValue 
-          ? `£${regularPriceValue}`
-          : null,
-        image: imageUrl || `https://picsum.photos/300/300?random=${product.sku}`,
-        url: product.url,
-        inStock: product.inStock,
-        isNew: true // Możesz później dodać logikę wykrywania nowych produktów
-      };
+  sku: product.sku,
+  name: product.name,
+  price: `£${priceValue}`,
+  formattedPrice: `£${priceValue}`,
+  originalPrice: regularPriceValue && regularPriceValue !== priceValue 
+    ? `£${regularPriceValue}`
+    : null,
+  image: imageUrl || `https://picsum.photos/300/300?random=${product.sku}`,
+  url: product.url,
+  urlKey: product.urlKey, // DODAJ TO
+  inStock: product.inStock,
+  isNew: true
+};
 
       console.log(`📋 Mapped product: ${product.name}`, productData);
       return productData;
