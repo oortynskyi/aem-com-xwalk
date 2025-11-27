@@ -1,509 +1,220 @@
-import { fetchPlaceholders, fetchProducts, getProductLink } from '../../scripts/commerce.js';
+import { render as provider } from '@dropins/storefront-cart/render.js';
+import MiniCart from '@dropins/storefront-cart/containers/MiniCart.js';
+import { events } from '@dropins/tools/event-bus.js';
+import { tryRenderAemAssetsImage } from '@dropins/tools/lib/aem/assets.js';
+import {
+  InLineAlert,
+  Icon,
+  provider as UI,
+  Button,
+} from '@dropins/tools/components.js';
+import { h } from '@dropins/tools/preact.js';
 
-function updateActiveSlide(slide) {
-  const block = slide.closest('.new-products-slider');
-  const slideIndex = parseInt(slide.dataset.slideIndex, 10);
-  block.dataset.activeSlide = slideIndex;
+import createModal from '../modal/modal.js';
+import createMiniPDP from '../../scripts/components/commerce-mini-pdp/commerce-mini-pdp.js';
 
-  const slides = block.querySelectorAll('.new-products-slide');
-  const indicators = block.querySelectorAll('.new-products-indicator');
+// Initializers
+import '../../scripts/initializers/cart.js';
 
-  slides.forEach((aSlide, idx) => {
-    aSlide.setAttribute('aria-hidden', idx !== slideIndex);
-  });
+import { readBlockConfig } from '../../scripts/aem.js';
+import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
 
-  indicators.forEach((indicator, idx) => {
-    const button = indicator.querySelector('button');
-    if (idx !== slideIndex) {
-      button.removeAttribute('disabled');
-    } else {
-      button.setAttribute('disabled', 'true');
-    }
-  });
-}
-
-function showSlide(block, slideIndex = 0) {
-  const slides = block.querySelectorAll('.new-products-slide');
-  let realSlideIndex = slideIndex < 0 ? slides.length - 1 : slideIndex;
-  if (slideIndex >= slides.length) realSlideIndex = 0;
-  
-  const slidesContainer = block.querySelector('.new-products-slides');
-  const activeSlide = slides[realSlideIndex];
-
-  slidesContainer.scrollTo({
-    top: 0,
-    left: activeSlide.offsetLeft,
-    behavior: 'smooth',
-  });
-}
-
-function bindEvents(block) {
-  const indicatorsContainer = block.querySelector('.new-products-indicators');
-  if (indicatorsContainer) {
-    indicatorsContainer.querySelectorAll('button').forEach((button) => {
-      button.addEventListener('click', (e) => {
-        const indicator = e.currentTarget.parentElement;
-        showSlide(block, parseInt(indicator.dataset.targetSlide, 10));
-      });
-    });
-  }
-
-  const prevBtn = block.querySelector('.new-products-prev');
-  const nextBtn = block.querySelector('.new-products-next');
-  
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
-      showSlide(block, parseInt(block.dataset.activeSlide, 10) - 1);
-    });
-  }
-  
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      showSlide(block, parseInt(block.dataset.activeSlide, 10) + 1);
-    });
-  }
-
-  const slideObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) updateActiveSlide(entry.target);
-    });
-  }, { threshold: 0.5 });
-  
-  block.querySelectorAll('.new-products-slide').forEach((slide) => {
-    slideObserver.observe(slide);
-  });
-}
-
-/**
- * NOWA FUNKCJA - Parsowanie konfiguracji z Google Docs przez AEM
- */
-async function parseConfigurationFromGoogleDocs(block) {
-  const config = {
-    productsPerSlide: 4,
-    totalProducts: 8
-  };
-  
-  try {
-    // Szukamy linku do Google Docs w bloku
-    const googleDocsLink = block.querySelector('a[href*="docs.google.com"]');
-    
-    if (googleDocsLink) {
-      const docsUrl = googleDocsLink.href;
-      console.log('📊 Found Google Docs link:', docsUrl);
-      
-      // Konwersja URL Google Docs na URL do pobrania jako JSON
-      const sheetId = extractGoogleSheetId(docsUrl);
-      if (sheetId) {
-        const parameters = await fetchGoogleSheetParameters(sheetId);
-        console.log('📋 Parameters from Google Sheet:', parameters);
-        
-        // Mapowanie parametrów na konfigurację
-        parameters.forEach(param => {
-          if (param.parameter === 'productsPerSlide') {
-            config.productsPerSlide = parseInt(param.quantity) || 4;
-          } else if (param.parameter === 'totalProducts') {
-            config.totalProducts = parseInt(param.quantity) || 8;
-          }
-        });
-      }
-    }
-  } catch (error) {
-    console.warn('❌ Could not fetch from Google Docs, using defaults:', error);
-  }
-  
-  // Fallback: parsowanie z tekstu w bloku
-  if (config.productsPerSlide === 4) {
-    const textContent = block.textContent;
-    const productsPerSlideMatch = textContent.match(/Produkty na slajd\s*:\s*(\d+)/i);
-    if (productsPerSlideMatch) {
-      config.productsPerSlide = parseInt(productsPerSlideMatch[1]);
-    }
-  }
-  
-  console.log('🎯 Final configuration:', config);
-  return config;
-}
-
-/**
- * Ekstrakcja ID z URL Google Sheets
- */
-function extractGoogleSheetId(url) {
-  const matches = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  return matches ? matches[1] : null;
-}
-
-/**
- * Pobieranie parametrów z Google Sheets przez AEM proxy
- */
-async function fetchGoogleSheetParameters(sheetId) {
-  try {
-    // Używamy AEM jako proxy do Google Sheets
-    const aemEndpoint = `/content/dam/google-sheets-import/${sheetId}.json`;
-    const response = await fetch(aemEndpoint);
-    
-    if (response.ok) {
-      const data = await response.json();
-      return parseSheetData(data);
-    }
-  } catch (error) {
-    console.warn('AEM proxy failed, trying direct approach:', error);
-    
-    // Fallback: bezpośrednie pobieranie jako CSV
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-    const csvResponse = await fetch(csvUrl);
-    if (csvResponse.ok) {
-      const csvText = await csvResponse.text();
-      return parseCSVData(csvText);
-    }
-  }
-  
-  return [];
-}
-
-/**
- * Parsowanie danych z JSON (AEM)
- */
-function parseSheetData(data) {
-  const parameters = [];
-  
-  if (data && data.sheets && data.sheets[0]) {
-    const sheet = data.sheets[0];
-    const rows = sheet.data[0].rowData;
-    
-    // Pomijamy nagłówek, zaczynamy od wiersza 1
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.values && row.values.length >= 2) {
-        const parameter = row.values[0].formattedValue;
-        const quantity = row.values[1].formattedValue;
-        
-        if (parameter && quantity) {
-          parameters.push({
-            parameter: parameter.trim(),
-            quantity: quantity.trim()
-          });
-        }
-      }
-    }
-  }
-  
-  return parameters;
-}
-
-/**
- * Parsowanie danych CSV
- */
-function parseCSVData(csvText) {
-  const parameters = [];
-  const lines = csvText.split('\n');
-  
-  // Pomijamy nagłówek, zaczynamy od linii 1
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line) {
-      const [parameter, quantity] = line.split(',').map(item => item.trim().replace(/"/g, ''));
-      
-      if (parameter && quantity) {
-        parameters.push({
-          parameter: parameter,
-          quantity: quantity
-        });
-      }
-    }
-  }
-  
-  return parameters;
-}
-
-function createProductCard(product) {
-  const card = document.createElement('div');
-  card.className = 'new-products-card';
-  
-  // LINK do produktu - tylko dla obrazka i tytułu
-  const productLink = document.createElement('a');
-  productLink.href = getProductLink(product.urlKey, product.sku); // Używamy funkcji z commerce.js
-  productLink.className = 'product-link';
-  
-  // NOWOŚĆ badge
-  if (product.isNew) {
-    const newBadge = document.createElement('span');
-    newBadge.className = 'new-products-badge';
-    newBadge.textContent = 'NOWOŚĆ';
-    productLink.appendChild(newBadge);
-  }
-  
-  // Image container
-  const imageContainer = document.createElement('div');
-  imageContainer.className = 'new-products-image';
-  
-  const image = document.createElement('img');
-  image.src = product.image;
-  image.alt = product.name;
-  image.loading = 'lazy';
-  imageContainer.appendChild(image);
-  
-  productLink.appendChild(imageContainer);
-  
-  // Title
-  const title = document.createElement('h3');
-  title.className = 'new-products-title';
-  title.textContent = product.name;
-  productLink.appendChild(title);
-  
-  // Content
-  const content = document.createElement('div');
-  content.className = 'new-products-content';
-  
-  // Prices
-  const priceContainer = document.createElement('div');
-  priceContainer.className = 'new-products-price-container';
-  
-  const netPrice = document.createElement('div');
-  netPrice.className = 'new-products-net-price';
-  netPrice.textContent = product.formattedPrice || '3499,00 zł netto';
-  priceContainer.appendChild(netPrice);
-  
-  const grossPrice = document.createElement('div');
-  grossPrice.className = 'new-products-gross-price';
-  grossPrice.textContent = product.originalPrice || '4303,77 zł brutto';
-  priceContainer.appendChild(grossPrice);
-  
-  content.appendChild(priceContainer);
-  
-  // Add to cart panel Z NOWYM LAYOUTEM
-  const addToCartPanel = document.createElement('div');
-  addToCartPanel.className = 'add-to-cart-panel';
-  
-  // Quantity controls - 3 kolumny
-  const quantityControls = document.createElement('div');
-  quantityControls.className = 'quantity-controls';
-  
-  // Przycisk -
-  const decreaseBtn = document.createElement('button');
-  decreaseBtn.type = 'button';
-  decreaseBtn.className = 'quantity-btn decrease';
-  decreaseBtn.innerHTML = '−';
-  
-  // Input
-  const quantityInput = document.createElement('input');
-  quantityInput.type = 'number';
-  quantityInput.className = 'quantity-input';
-  quantityInput.value = '1';
-  quantityInput.min = '1';
-  quantityInput.max = '10';
-  
-  // Przycisk +
-  const increaseBtn = document.createElement('button');
-  increaseBtn.type = 'button';
-  increaseBtn.className = 'quantity-btn increase';
-  increaseBtn.innerHTML = '+';
-  
-  quantityControls.appendChild(decreaseBtn);
-  quantityControls.appendChild(quantityInput);
-  quantityControls.appendChild(increaseBtn);
-  
-  // Add to cart button
-  const addToCartButton = document.createElement('button');
-  addToCartButton.type = 'button';
-  addToCartButton.className = 'add-to-cart-button';
-  addToCartButton.textContent = 'Dodaj do koszyka';
-  
-  addToCartPanel.appendChild(quantityControls);
-  addToCartPanel.appendChild(addToCartButton);
-  
-  // Event listeners dla przycisków ilości
-  decreaseBtn.addEventListener('click', () => {
-    const currentValue = parseInt(quantityInput.value) || 1;
-    if (currentValue > 1) {
-      quantityInput.value = currentValue - 1;
-    }
-  });
-  
-  increaseBtn.addEventListener('click', () => {
-    const currentValue = parseInt(quantityInput.value) || 1;
-    if (currentValue < 10) {
-      quantityInput.value = currentValue + 1;
-    }
-  });
-  
-  // Dodajemy wszystko do karty
-  content.appendChild(productLink); // Link z obrazkiem i tytułem
-  content.appendChild(addToCartPanel); // Panel z przyciskami
-  
-  card.appendChild(content);
-  
-  return card;
-}
-
-function createSlide(products, slideIndex, sliderId) {
-  const slide = document.createElement('li');
-  slide.dataset.slideIndex = slideIndex;
-  slide.setAttribute('id', `new-products-${sliderId}-slide-${slideIndex}`);
-  slide.className = 'new-products-slide';
-  slide.setAttribute('role', 'tabpanel');
-  slide.setAttribute('aria-roledescription', 'slide');
-
-  // Add products to slide
-  products.forEach(product => {
-    const productCard = createProductCard(product);
-    slide.appendChild(productCard);
-  });
-
-  return slide;
-}
-
-let sliderId = 0;
 export default async function decorate(block) {
-  console.log('🎯 New Products Slider - Starting decoration');
-  
-  sliderId += 1;
-  block.setAttribute('id', `new-products-${sliderId}`);
-  
+  const {
+    'start-shopping-url': startShoppingURL = '',
+    'cart-url': cartURL = '',
+    'checkout-url': checkoutURL = '',
+    'enable-updating-product': enableUpdatingProduct = 'false',
+    'undo-remove-item': undo = 'false',
+  } = readBlockConfig(block);
+
+  // Get translations for custom messages
   const placeholders = await fetchPlaceholders();
-  
-  // Parse configuration from Google Docs
-  const config = await parseConfigurationFromGoogleDocs(block);
-  const productsPerSlide = config.productsPerSlide;
-  const totalProducts = config.totalProducts;
-  
-  console.log(`🛍️ New Products Slider: ${productsPerSlide} products per slide, ${totalProducts} total products`);
-  
-  let products = [];
-  
-  try {
-    // Fetch real products from Magento
-    console.log('🔄 Fetching products from Magento...');
-    products = await fetchProducts({
-      sort: 'newest',
-      limit: totalProducts
-    });
-    
-    if (!products || products.length === 0) {
-      throw new Error('No products received from Magento');
-    }
-    
-    console.log(`✅ Loaded ${products.length} real products from Magento`);
-    
-  } catch (error) {
-    console.error('❌ Could not fetch products from Magento:', error);
-    
-    // Professional error handling
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'new-products-error';
-    errorMessage.innerHTML = `
-      <p>Unable to load products at the moment. Please try again later.</p>
-      <small>Technical details: ${error.message}</small>
-    `;
-    block.appendChild(errorMessage);
-    return;
-  }
-  
-  // Clear the block content (remove configuration text)
-  block.innerHTML = '';
-  
-  if (!products || products.length === 0) {
-    const message = document.createElement('p');
-    message.textContent = 'No new products available at this time.';
-    block.appendChild(message);
-    return;
-  }
 
-  // Accessibility setup
-  block.setAttribute('role', 'region');
-  block.setAttribute('aria-roledescription', placeholders.newProductsSlider || 'New Products Slider');
-  block.setAttribute('aria-label', placeholders.newProducts || 'New Products');
+  const MESSAGES = {
+    ADDED: placeholders?.Global?.MiniCartAddedMessage,
+    UPDATED: placeholders?.Global?.MiniCartUpdatedMessage,
+  };
 
-  // Create slider structure
-  const container = document.createElement('div');
-  container.className = 'new-products-container';
+  // Modal state
+  let currentModal = null;
+  let currentCartNotification = null;
 
-  const slidesWrapper = document.createElement('ul');
-  slidesWrapper.className = 'new-products-slides';
-  slidesWrapper.setAttribute('role', 'tablist');
+  // Create a container for the update message
+  const updateMessage = document.createElement('div');
+  updateMessage.className = 'commerce-mini-cart__update-message';
 
-  // Ustawienie zmiennej CSS dla liczby produktów na slajd
-  slidesWrapper.style.setProperty('--products-per-slide', productsPerSlide);
+  // Create shadow wrapper
+  const shadowWrapper = document.createElement('div');
+  shadowWrapper.className = 'commerce-mini-cart__message-wrapper';
+  shadowWrapper.appendChild(updateMessage);
 
-  // Create navigation
-  const navigation = document.createElement('div');
-  navigation.className = 'new-products-navigation';
-  
-  const prevButton = document.createElement('button');
-  prevButton.type = 'button';
-  prevButton.className = 'new-products-prev';
-  prevButton.setAttribute('aria-label', placeholders.previousSlide || 'Previous Slide');
-  prevButton.innerHTML = '‹';
-  
-  const nextButton = document.createElement('button');
-  nextButton.type = 'button';
-  nextButton.className = 'new-products-next';
-  nextButton.setAttribute('aria-label', placeholders.nextSlide || 'Next Slide');
-  nextButton.innerHTML = '›';
-  
-  navigation.appendChild(prevButton);
-  navigation.appendChild(nextButton);
+  const showMessage = (message) => {
+    updateMessage.textContent = message;
+    updateMessage.classList.add('commerce-mini-cart__update-message--visible');
+    shadowWrapper.classList.add('commerce-mini-cart__message-wrapper--visible');
+    setTimeout(() => {
+      updateMessage.classList.remove(
+        'commerce-mini-cart__update-message--visible',
+      );
+      shadowWrapper.classList.remove(
+        'commerce-mini-cart__message-wrapper--visible',
+      );
+    }, 3000);
+  };
 
-  // Split products into slides
-  const slides = [];
-  for (let i = 0; i < products.length; i += productsPerSlide) {
-    const slideProducts = products.slice(i, i + productsPerSlide);
-    slides.push(slideProducts);
-  }
+  // Handle Edit Button Click
+  async function handleEditButtonClick(cartItem) {
+    try {
+      // Create mini PDP content
+      const miniPDPContent = await createMiniPDP(
+        cartItem,
+        async (_updateData) => {
+          const productName = cartItem.name
+            || cartItem.product?.name
+            || placeholders?.Global?.CartUpdatedProductName;
+          const message = placeholders?.Global?.CartUpdatedProductMessage?.replace(
+            '{product}',
+            productName,
+          );
 
-  const isSingleSlide = slides.length < 2;
+          // Show message in the main cart page
+          const cartNotification = document.querySelector(
+            '.cart__notification',
+          );
+          if (cartNotification) {
+            // Clear any existing cart notifications
+            currentCartNotification?.remove();
 
-  // Create indicators if multiple slides
-  let indicatorsContainer = null;
-  if (!isSingleSlide) {
-    indicatorsContainer = document.createElement('ol');
-    indicatorsContainer.className = 'new-products-indicators';
-    indicatorsContainer.setAttribute('role', 'tablist');
-    indicatorsContainer.setAttribute('aria-label', placeholders.slideControls || 'Slide controls');
-  }
+            currentCartNotification = await UI.render(InLineAlert, {
+              heading: message,
+              type: 'success',
+              variant: 'primary',
+              icon: h(Icon, { source: 'CheckWithCircle' }),
+              'aria-live': 'assertive',
+              role: 'alert',
+              onDismiss: () => {
+                currentCartNotification?.remove();
+              },
+            })(cartNotification);
 
-  // Create slides from products
-  slides.forEach((slideProducts, idx) => {
-    const slide = createSlide(slideProducts, idx, sliderId);
-    slidesWrapper.appendChild(slide);
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+              currentCartNotification?.remove();
+            }, 5000);
+          }
 
-    if (indicatorsContainer) {
-      const indicator = document.createElement('li');
-      indicator.className = 'new-products-indicator';
-      indicator.dataset.targetSlide = idx;
-      indicator.setAttribute('role', 'tab');
-      
-      const indicatorButton = document.createElement('button');
-      indicatorButton.type = 'button';
-      indicatorButton.setAttribute('aria-label', `${placeholders.showSlide || 'Show Slide'} ${idx + 1} ${placeholders.of || 'of'} ${slides.length}`);
-      
-      if (idx === 0) {
-        indicatorButton.setAttribute('disabled', 'true');
+          // Also trigger message in the mini-cart
+          showMessage(message);
+        },
+        () => {
+          if (currentModal) {
+            currentModal.removeModal();
+            currentModal = null;
+          }
+        },
+      );
+
+      currentModal = await createModal([miniPDPContent]);
+
+      if (currentModal.block) {
+        currentModal.block.setAttribute('id', 'mini-pdp-modal');
       }
-      
-      indicator.appendChild(indicatorButton);
-      indicatorsContainer.appendChild(indicator);
+
+      currentModal.showModal();
+    } catch (error) {
+      console.error('Error opening mini PDP modal:', error);
+
+      // Show error message using mini-cart's message system
+      showMessage(
+        placeholders?.Global?.ProductLoadError,
+      );
     }
+  }
+
+  // Add event listeners for cart updates
+  events.on('cart/product/added', () => showMessage(MESSAGES.ADDED), {
+    eager: true,
+  });
+  events.on('cart/product/updated', () => showMessage(MESSAGES.UPDATED), {
+    eager: true,
   });
 
-  container.appendChild(slidesWrapper);
-  
-  // Only add navigation if multiple slides
-  if (!isSingleSlide) {
-    container.appendChild(navigation);
-  }
-  
-  block.appendChild(container);
-  
-  if (indicatorsContainer) {
-    block.appendChild(indicatorsContainer);
+  // Prevent mini cart from closing when undo is enabled
+  if (undo === 'true') {
+    // Add event listener to prevent event bubbling from remove buttons
+    block.addEventListener('click', (e) => {
+      // Check if click is on a remove button or within an undo-related element
+      const isRemoveButton = e.target.closest('[class*="remove"]')
+        || e.target.closest('[data-testid*="remove"]')
+        || e.target.closest('[class*="undo"]')
+        || e.target.closest('[data-testid*="undo"]');
+
+      if (isRemoveButton) {
+        // Stop the event from bubbling up to document level
+        e.stopPropagation();
+      }
+    });
   }
 
-  // Initialize first slide
-  block.dataset.activeSlide = '0';
-  
-  if (!isSingleSlide) {
-    bindEvents(block);
+  block.innerHTML = '';
+
+  // Render MiniCart
+  const createProductLink = (product) => getProductLink(product.url.urlKey, product.topLevelSku);
+  await provider.render(MiniCart, {
+    routeEmptyCartCTA: startShoppingURL ? () => rootLink(startShoppingURL) : undefined,
+    routeCart: cartURL ? () => rootLink(cartURL) : undefined,
+    routeCheckout: checkoutURL ? () => rootLink(checkoutURL) : undefined,
+    routeProduct: createProductLink,
+    undo: undo === 'true',
+
+    slots: {
+      Thumbnail: (ctx) => {
+        const { item, defaultImageProps } = ctx;
+        const anchorWrapper = document.createElement('a');
+        anchorWrapper.href = createProductLink(item);
+
+        tryRenderAemAssetsImage(ctx, {
+          alias: item.sku,
+          imageProps: defaultImageProps,
+          wrapper: anchorWrapper,
+
+          params: {
+            width: defaultImageProps.width,
+            height: defaultImageProps.height,
+          },
+        });
+
+        if (item?.itemType === 'ConfigurableCartItem' && enableUpdatingProduct === 'true') {
+          const editLinkContainer = document.createElement('div');
+          editLinkContainer.className = 'cart-item-edit-container';
+
+          const editLink = document.createElement('div');
+          editLink.className = 'cart-item-edit-link';
+
+          UI.render(Button, {
+            children: placeholders?.Global?.CartEditButton,
+            variant: 'tertiary',
+            size: 'medium',
+            icon: h(Icon, { source: 'Edit' }),
+            onClick: () => handleEditButtonClick(item),
+          })(editLink);
+
+          editLinkContainer.appendChild(editLink);
+          ctx.appendChild(editLinkContainer);
+        }
+      },
+    },
+  })(block);
+
+  // Find the products container and add the message div at the top
+  const productsContainer = block.querySelector('.cart-mini-cart__products');
+  if (productsContainer) {
+    productsContainer.insertBefore(shadowWrapper, productsContainer.firstChild);
+  } else {
+    console.info('Products container not found, appending message to block');
+    block.appendChild(shadowWrapper);
   }
-  
-  console.log(`✅ New Products Slider successfully initialized with ${slides.length} slides`);
+
+  return block;
 }
