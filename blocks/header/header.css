@@ -10,7 +10,7 @@
 header .nav-wrapper {
   background-color: var(--background-color);
   width: 100%;
-  z-index: 3;
+  z-index: 1001;
   position: fixed;
   border-bottom: 2px solid var(--color-neutral-300);
 }
@@ -175,38 +175,61 @@ header nav .nav-search-bar {
   background: #f2f2f2;
 }
 
+header nav .nav-search-bar .search-bar-wrapper {
+  position: relative;
+}
+
 header nav .nav-search-bar,
 header nav .nav-search-bar .search-bar-wrapper,
-header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container {
+header nav .nav-search-bar .search-bar-wrapper .search-bar-form {
   display: flex;
   flex: 1 1 0;
   min-width: 192px;
 }
 
-header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container {
+header nav .nav-search-bar .search-bar-wrapper .search-bar-form {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-header nav .nav-search-bar .search-bar-wrapper .nav-search-bar-input {
+header nav .nav-search-bar .search-bar-wrapper .search-bar-input {
   flex: 1 1 0;
   min-width: 192px;
   padding: 5px;
   line-height: 1;
 }
 
-header nav .nav-search-bar .search-bar-wrapper .nav-search-bar-input, 
-header nav .nav-search-bar .search-bar-wrapper .nav-search-bar-button{
+header nav .nav-search-bar .search-bar-wrapper .search-bar-input, 
+header nav .nav-search-bar .search-bar-wrapper .search-bar-button{
   border: 0;
   background: transparent;
 }
 
-header nav .nav-search-bar .search-bar-wrapper .search-bar-form-container .nav-search-bar-button {
+header nav .nav-search-bar .search-bar-wrapper .search-bar-form .search-bar-button {
   background-image: url('../../icons/search.svg');
   background-position: center;
   background-repeat: no-repeat;
   font-size: 0;
   width: 3.5rem;
   min-width: 3.5rem;
+}
+
+header nav .nav-search-bar .search-bar-wrapper .search-bar-result-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #949494;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  padding: 12px;
+  z-index: 9999;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+header nav .nav-search-bar .search-bar-wrapper .search-bar-result-panel .product-discovery-product-list__grid {
+  grid-template-columns: repeat(4, 1fr) !important;
 }
 
 @media (max-width: 900px) {
