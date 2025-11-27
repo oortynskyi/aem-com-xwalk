@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 .large-links {
     display: flex;
     background-color: var(--color-accent);
@@ -5,3 +6,11 @@
     width: fit-content; 
     margin-bottom: 270px;
 }
+=======
+.large-links {
+    display: flex;
+    background-color: var(--color-accent);
+    margin-left: auto;
+    width: fit-content; 
+}
+>>>>>>> Stashed changes
