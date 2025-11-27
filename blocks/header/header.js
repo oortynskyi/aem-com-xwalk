@@ -1,5 +1,6 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { loadFragment } from '../fragment/fragment.js';
+import { getProductLink, rootLink } from '../../scripts/commerce.js';
 
 // media query match that indicates mobile/tablet width
 const isDesktop = window.matchMedia('(min-width: 900px)');
@@ -57,12 +58,81 @@ export default async function decorate(block) {
   const searchPlaceholder = navSearchBar.querySelector(".default-content-wrapper > p").textContent ?? 'Search...';
   navSearchBar.innerHTML = `
   <div class="search-bar-wrapper">
-    <form class="search-bar-form-container">
-      <button class="nav-search-bar-button"></button>
-      <input class="nav-search-bar-input" placeholder="${searchPlaceholder}"/>
+    <form class="search-bar-form">
+      <button class="search-bar-button" type="submit"></button>
+      <input class="search-bar-input" placeholder="${searchPlaceholder}" name="search"/>
     </form>
+    <div class="search-bar-result-panel" style="display: none;"></div>
   </div>
   `;
+
+  const searchWrapper = navSearchBar.querySelector('.search-bar-wrapper');
+  const searchForm = searchWrapper.querySelector('.search-bar-form');
+  const searchInput = searchWrapper.querySelector('.search-bar-input');
+  const searchResultPanel = searchWrapper.querySelector('.search-bar-result-panel');
+
+  // variables for Search Bar and Search Result Panel
+  let searchModulesLoaded = false;
+  let searchApi;
+  let searchRender;
+  let SearchResults;
+  const minPhraseLen = 3;
+  const searchProductsCount = 4;
+
+  async function loadSearchModules() {
+    if (searchModulesLoaded) return;
+
+    await import('../../scripts/initializers/search.js');
+
+    [
+      { search: searchApi },
+      { render: searchRender },
+      { SearchResults }
+    ] = await Promise.all([
+      import('@dropins/storefront-product-discovery/api.js'),
+      import('@dropins/storefront-product-discovery/render.js'),
+      import('@dropins/storefront-product-discovery/containers/SearchResults.js')
+    ]);
+
+    searchModulesLoaded = true;
+  }
+
+  async function initSearchResults() {
+    await loadSearchModules();
+
+    searchRender.render(SearchResults, {
+      skeletonCount: searchProductsCount,
+      scope: 'popover',
+      routeProduct: ({ urlKey, sku }) => getProductLink(urlKey, sku),
+      onSearchResult: (results) => {
+        searchResultPanel.style.display = results.length > 0 ? 'block' : 'none';
+      },
+    })(searchResultPanel);
+  }
+
+  searchInput.addEventListener('input', async (e) => {
+    const phrase = e.target.value.trim();
+
+    await initSearchResults();
+
+    if (!phrase) {
+      searchApi(null, { scope: 'popover' });
+      searchResultPanel.style.display = 'none';
+      return;
+    }
+
+    if (phrase.length < minPhraseLen) return;
+
+    searchApi({ phrase, pageSize: searchProductsCount }, { scope: 'popover' });
+  });
+
+  searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const phrase = searchInput.value.trim();
+    if (!phrase) return;
+
+    window.location.href = `${rootLink('/search')}?q=${encodeURIComponent(phrase)}`;
+  });
 
   /** Important Links */
   const navImportantLinks = nav.querySelector('.nav-important-links');
@@ -198,6 +268,10 @@ export default async function decorate(block) {
 
     if (shouldCloseMiniCart) {
       toggleMiniCart(false);
+    }
+
+    if(!searchWrapper.contains(e.target)){
+      searchResultPanel.style.display = 'none';
     }
   });
 
