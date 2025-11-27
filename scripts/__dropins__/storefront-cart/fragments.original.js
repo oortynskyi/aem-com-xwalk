@@ -177,11 +177,6 @@ const e=`
       }
       quantity
       gift_message_available
-      gift_wrapping_available
-      gift_wrapping_price {
-        currency
-        value
-      }
       thumbnail {
         url
         label
