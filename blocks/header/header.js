@@ -1,6 +1,7 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { loadFragment } from '../fragment/fragment.js';
 import { getProductLink, rootLink } from '../../scripts/commerce.js';
+import { events } from '@dropins/tools/event-bus.js';
 
 // media query match that indicates mobile/tablet width
 const isDesktop = window.matchMedia('(min-width: 900px)');
@@ -177,6 +178,10 @@ export default async function decorate(block) {
 
   const minicartPanel = navTools.querySelector('.minicart-panel');
   const cartButton = navTools.querySelector('.nav-cart-button');
+  
+  events.on('cart/updated', ({ cart }) => {
+    console.log('[HEADER] cart updated: ', cart);
+  });
 
   /**
    * Handles loading states for navigation panels with state management
