@@ -179,9 +179,9 @@ export default async function decorate(block) {
   const minicartWrapper = navTools.querySelector('.minicart-wrapper');
   const minicartPanel = navTools.querySelector('.minicart-panel');
   const cartButton = navTools.querySelector('.nav-cart-button');
-  
-  // cart price update
-  events.on('cart/updated', (cart) => {
+
+  // cart price update (and initializing when loading the page)
+  events.on('cart/data', (cart) => {
     console.log('[HEADER] cart updated: ', cart);
     const minicartValueSpan = minicartWrapper.querySelector('#mini-cart-total-value');
     const updatedValue = cart?.subtotal?.excludingTax?.value;
