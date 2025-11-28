@@ -182,11 +182,10 @@ export default async function decorate(block) {
 
   // cart price update (and initializing when loading the page)
   events.on('cart/data', (cart) => {
-    console.log('[HEADER] cart updated: ', cart);
     const minicartValueSpan = minicartWrapper.querySelector('#mini-cart-total-value');
     const updatedValue = cart?.subtotal?.excludingTax?.value;
-    console.log({minicartValueSpan, updatedValue});
-    if(minicartValueSpan && updatedValue) minicartValueSpan.textContent = `${updatedValue} zł`;
+    const updatedCurrency = cart?.subtotal?.excludingTax?.currency;
+    if(minicartValueSpan && updatedValue && updatedCurrency) minicartValueSpan.textContent = `${updatedValue} ${updatedCurrency}`;
   });
 
   /**
