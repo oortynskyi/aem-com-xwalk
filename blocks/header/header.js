@@ -166,7 +166,7 @@ export default async function decorate(block) {
           <img src="../../icons/cart.svg" alt="icon" />
         </div>
         <div class="nav-cart-value">
-          <span>0.00 zł</span>
+          <span id="mini-cart-total-value">0.00 zł</span>
           <span>netto</span>
         </div>
       </button>
@@ -179,8 +179,12 @@ export default async function decorate(block) {
   const minicartPanel = navTools.querySelector('.minicart-panel');
   const cartButton = navTools.querySelector('.nav-cart-button');
   
-  events.on('cart/updated', ({ cart }) => {
+  // cart price update
+  events.on('cart/updated', (cart) => {
     console.log('[HEADER] cart updated: ', cart);
+    const minicartValue = minicartPanel.querySelector('#mini-cart-total-value');
+    const updatedValue = cart?.subtotal?.excludingTax?.value;
+    if(minicartValue && updatedValue) minicartValue.textContent = `${updatedValue} zł`;
   });
 
   /**
