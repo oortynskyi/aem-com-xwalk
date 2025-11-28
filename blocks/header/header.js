@@ -175,14 +175,15 @@ export default async function decorate(block) {
   `);
 
   navTools.append(minicart);
-
+  
+  const minicartWrapper = navTools.querySelector('.minicart-wrapper');
   const minicartPanel = navTools.querySelector('.minicart-panel');
   const cartButton = navTools.querySelector('.nav-cart-button');
   
   // cart price update
   events.on('cart/updated', (cart) => {
     console.log('[HEADER] cart updated: ', cart);
-    const minicartValueSpan = minicartPanel.querySelector('#mini-cart-total-value');
+    const minicartValueSpan = minicartWrapper.querySelector('#mini-cart-total-value');
     const updatedValue = cart?.subtotal?.excludingTax?.value;
     console.log({minicartValueSpan, updatedValue});
     if(minicartValueSpan && updatedValue) minicartValueSpan.textContent = `${updatedValue} zł`;
