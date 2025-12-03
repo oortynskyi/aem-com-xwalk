@@ -7,8 +7,19 @@ import {
   getListOfRootPaths,
 } from '@dropins/tools/lib/aem/configs.js';
 import { events } from '@dropins/tools/event-bus.js';
+import { FetchGraphQL } from '@dropins/tools/fetch-graphql.js';
 import { getMetadata } from './aem.js';
 import initializeDropins from './initializers/index.js';
+
+/**
+ * Fetch GraphQL Instances
+ */
+
+// Core Fetch GraphQL Instance
+export const CORE_FETCH_GRAPHQL = new FetchGraphQL();
+
+// Catalog Service Fetch GraphQL Instance
+export const CS_FETCH_GRAPHQL = new FetchGraphQL();
 
 /**
  * Constants
@@ -274,51 +285,19 @@ export async function loadCommerceLazy() {
 /**
  * Initializes commerce configuration
  */
-initializeCommerce
 export async function initializeCommerce() {
- console.log('🚀 Starting commerce initialization...');
-  
-  if (!window.aemContext?.config) {
-    console.error('❌ aemContext.config not available for commerce initialization');
-    return;
-  }
+  // Initialize Config
+  initializeConfig(await getConfigFromSession());
 
-  try {
-    // TRANSFORMACJA W MIEJSCU - na wypadek gdyby scripts.js nie zadziałał
-    let configData = window.aemContext.config;
-    
-    // Jeśli config nadal ma strukturę arkusza, przekształć go
-    if (configData.data && Array.isArray(configData.data)) {
-      console.log('🔄 Transforming config in commerce.js');
-      const flatConfig = {};
-      configData.data.forEach(item => {
-        if (item && item.key && item.value !== undefined) {
-          flatConfig[item.key] = item.value;
-        }
-      });
-      configData = flatConfig;
-      console.log('🔧 Transformed config in commerce.js:', configData);
-    } else {
-      console.log('🔧 Using already flat config from aemContext');
-    }
+  // Set Fetch GraphQL (Core)
+  CORE_FETCH_GRAPHQL.setEndpoint(getConfigValue('commerce-core-endpoint'));
+  CORE_FETCH_GRAPHQL.setFetchGraphQlHeaders((prev) => ({ ...prev, ...getHeaders('all') }));
 
-    console.log('🔧 Final config for initializeConfig:', configData);
+  // Set Fetch GraphQL (Catalog Service)
+  CS_FETCH_GRAPHQL.setEndpoint(await commerceEndpointWithQueryParams());
+  CS_FETCH_GRAPHQL.setFetchGraphQlHeaders((prev) => ({ ...prev, ...getHeaders('cs') }));
 
-    // Inicjalizuj configs.js z przekształconym configiem
-    initializeConfig(configData, {
-      match: (key) => window.location.pathname.match(`^(/content/.*)?${key}`),
-    });
-
-    console.log('✅ Commerce config initialized successfully');
-    return initializeDropins();
-  } catch (error) {
-    console.error('❌ Failed to initialize commerce config:', error);
-    throw error;
-  }
-  // initializeConfig(await getConfigFromSession(), {
-  //   match: (key) => window.location.pathname.match(`^(/content/.*)?${key}`),
-  // });
-  // return initializeDropins();
+  return initializeDropins();
 }
 
 /**
@@ -327,21 +306,8 @@ export async function initializeCommerce() {
  * @returns {string} - The localized link
  */
 export function rootLink(link) {
-  // XWALK: we need to add the site path if set
-  const aemContentRoot = window.hlx.codeBasePath.split('.')[0];
-  const root = `${aemContentRoot}${getRootPath().replace(/\/$/, '')}`;
+  const root = getRootPath().replace(/\/$/, '');
 
-  // If it's an absolute URL, extract the pathname
-  /* eslint-disable no-param-reassign */
-  if (link.startsWith('http://') || link.startsWith('https://')) {
-    const url = new URL(link);
-    link = url.pathname;
-  }
-  // append the site path to link
-  link = link.startsWith(aemContentRoot) ? link : `${aemContentRoot}${link}`;
-  // append the .html extension to link if we are in the author environment
-  link = window.xwalk?.isAuthorEnv && !link.endsWith('.html') ? `${link}.html` : link;
-  /* eslint-enable no-param-reassign */
   // If the link is already localized, do nothing
   if (link.startsWith(root)) return link;
   return `${root}${link}`;
@@ -375,14 +341,9 @@ function buildTemplateColumns(doc) {
  * @param {Element} doc The document element
  */
 export function applyTemplates(doc) {
-  // Xwalk: use templates to apply columns to the document
-  const templates = ['account', 'orders', 'address', 'returns', 'account-order-details'];
-  templates.forEach((template) => {
-    if (doc.body.classList.contains(template)) {
-      buildTemplateColumns(doc);
-      doc.body.classList.add('columns');
-    }
-  });
+  if (doc.body.classList.contains('columns')) {
+    buildTemplateColumns(doc);
+  }
 }
 
 /**
@@ -451,9 +412,8 @@ export async function fetchPlaceholders(path) {
         return window.placeholders._pending[resourceCacheKey];
       }
 
-      // Create new fetch promise¨
-      // XWALK: no sheet parameter
-      const resourceFetchPromise = fetch(`${url}`).then(async (response) => {
+      // Create new fetch promise
+      const resourceFetchPromise = fetch(`${url}?sheet=data`).then(async (response) => {
         if (response.ok) {
           const data = await response.json();
           // Cache the response
@@ -566,7 +526,7 @@ export async function fetchPlaceholders(path) {
  * @returns {Promise<Object>} - The config JSON from session storage
  */
 export async function getConfigFromSession() {
-  const configURL = new URL(`${window.hlx.codeBasePath}/config.json`, window.location);
+  const configURL = `${window.location.origin}/config.json`;
 
   try {
     const configJSON = window.sessionStorage.getItem('config');
@@ -631,15 +591,8 @@ export async function commerceEndpointWithQueryParams() {
  */
 function getSkuFromUrl() {
   const path = window.location.pathname;
-  const result = path.match(/\/products\/[\w|-]+\/([\w|-]+)(\.html)?$/);
-  let sku = result?.[1];
-  // Xwalk: If in AEM authoring environment, try to get fallback sku from page metadata
-  // if url does not resolve to a valid sku
-  if (!sku && window.xwalk.previewSku) {
-    sku = window.xwalk.previewSku;
-  }
-
-  return sku;
+  const result = path.match(/\/products\/[\w|-]+\/([\w|-]+)$/);
+  return result?.[1];
 }
 
 export function getProductLink(urlKey, sku) {
@@ -795,230 +748,5 @@ function autolinkModals(element) {
       const { openModal } = await import(`${window.hlx.codeBasePath}/blocks/modal/modal.js`);
       openModal(origin.href);
     }
-  });
-}
-
-//fetch products
-
-/**
- * Fetches new products from Magento based on given options.
- * @param {Object} options - The options for fetching products
- * @param {string} options.sort - The sort order
- * @param {number} options.limit - The number of products to fetch
- * @returns {Promise<Array>} A promise that resolves to an array of products
- */
-export async function fetchProducts(options = {}) {
-  const { sort = 'newest', limit = 8 } = options;
-
-  try {
-    const endpoint = await commerceEndpointWithQueryParams();
-    
-    // Uproszczone zapytanie które DZIAŁA z Twoim Magento
-    const query = `
-      query productSearch(
-        $phrase: String!
-        $pageSize: Int
-        $currentPage: Int = 1
-        $filter: [SearchClauseInput!]
-        $sort: [ProductSearchSortInput!]
-      ) {
-        productSearch(
-          phrase: $phrase
-          page_size: $pageSize
-          current_page: $currentPage
-          filter: $filter
-          sort: $sort
-        ) {
-          items {
-            productView {
-              sku
-              name
-              inStock
-              url
-              urlKey
-              images {
-                url
-                roles
-              }
-              ... on SimpleProductView {
-                price {
-                  final {
-                    amount {
-                      value
-                      currency
-                    }
-                  }
-                  regular {
-                    amount {
-                      value
-                      currency
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = {
-      phrase: "", // Puste wyszukiwanie = wszystkie produkty
-      pageSize: limit,
-      currentPage: 1,
-      sort: [{ attribute: "position", direction: "DESC" }],
-      filter: [{ attribute: "categoryPath", eq: "all" }]
-    };
-
-    console.log('🔄 Sending GraphQL request to Magento...', { variables });
-
-    const response = await fetch(endpoint.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getHeaders('cs'),
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    console.log('📦 Raw Magento response:', data);
-
-    // Sprawdzamy czy są błędy GraphQL
-    if (data.errors) {
-      throw new Error(data.errors.map(error => error.message).join(', '));
-    }
-
-    const items = data?.data?.productSearch?.items || [];
-
-    if (items.length === 0) {
-      throw new Error('No products found in response');
-    }
-
-    console.log(`✅ Found ${items.length} products in Magento response`);
-
-    // POPRAWIONE MAPOWANIE DANYCH - dostosowane do Twojej odpowiedzi
-    const products = items.map(item => {
-      const product = item.productView;
-      
-      // Znajdź główny obrazek (z rolą 'image' lub pierwszy dostępny)
-      const mainImage = product.images?.find(img => 
-        img.roles?.includes('image') || 
-        img.roles?.includes('small_image') || 
-        img.roles?.includes('thumbnail')
-      ) || product.images?.[0];
-
-      const imageUrl = mainImage?.url;
-      
-      // Formatowanie ceny
-      const priceValue = product.price?.final?.amount?.value || 0;
-      const priceCurrency = product.price?.final?.amount?.currency || 'GBP';
-      const regularPriceValue = product.price?.regular?.amount?.value;
-      
-      const productData = {
-  sku: product.sku,
-  name: product.name,
-  price: `£${priceValue}`,
-  formattedPrice: `£${priceValue}`,
-  originalPrice: regularPriceValue && regularPriceValue !== priceValue 
-    ? `£${regularPriceValue}`
-    : null,
-  image: imageUrl || `https://picsum.photos/300/300?random=${product.sku}`,
-  url: product.url,
-  urlKey: product.urlKey, // DODAJ TO
-  inStock: product.inStock,
-  isNew: true
-};
-
-      console.log(`📋 Mapped product: ${product.name}`, productData);
-      return productData;
-    });
-
-    console.log(`🎉 Successfully mapped ${products.length} products`);
-    return products;
-
-  } catch (error) {
-    console.error('❌ Failed to fetch products from Magento:', error);
-    
-    // Fallback do prostszego zapytania
-    try {
-      console.log('🔄 Trying fallback product fetch...');
-      return await fetchSimpleProducts(limit);
-    } catch (fallbackError) {
-      console.error('❌ Fallback also failed:', fallbackError);
-      return [];
-    }
-  }
-}
-
-/**
- * Prostsze zapytanie jako fallback
- */
-async function fetchSimpleProducts(limit) {
-  const endpoint = await commerceEndpointWithQueryParams();
-  
-  const query = `
-    query GetProducts($limit: Int) {
-      productSearch(
-        phrase: ""
-        page_size: $limit
-        current_page: 1
-        sort: [{ attribute: "position", direction: "DESC" }]
-      ) {
-        items {
-          productView {
-            sku
-            name
-            inStock
-            url
-            images {
-              url
-            }
-            ... on SimpleProductView {
-              price {
-                final {
-                  amount {
-                    value
-                    currency
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  const response = await fetch(endpoint.toString(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders('cs'),
-    },
-    body: JSON.stringify({ query, variables: { limit } }),
-  });
-
-  if (!response.ok) throw new Error('Fallback failed');
-
-  const data = await response.json();
-  const items = data?.data?.productSearch?.items || [];
-
-  return items.map(item => {
-    const product = item.productView;
-    return {
-      sku: product.sku,
-      name: product.name,
-      price: `£${product.price?.final?.amount?.value || 0}`,
-      image: product.images?.[0]?.url || `https://picsum.photos/300/300?random=${product.sku}`,
-      url: product.url,
-      inStock: product.inStock,
-      isNew: true
-    };
   });
 }

@@ -8,4 +8,3 @@ scripts/commerce-events-collector.js
 scripts/commerce-events-sdk.js
 plugins/
 cypress/
-dompurify.min.js
