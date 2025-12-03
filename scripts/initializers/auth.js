@@ -8,7 +8,7 @@ await initializeDropin(async () => {
   setEndpoint(CORE_FETCH_GRAPHQL);
 
   // Fetch placeholders
-  const labels = await fetchPlaceholders('placeholders/auth.json');
+  const labels = await fetchPlaceholders('placeholders/authentication.json');
   const langDefinitions = {
     default: {
       ...labels,
