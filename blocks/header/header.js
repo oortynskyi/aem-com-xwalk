@@ -1,7 +1,7 @@
+import { events } from '@dropins/tools/event-bus.js';
 import { getMetadata } from '../../scripts/aem.js';
 import { loadFragment } from '../fragment/fragment.js';
 import { getProductLink, rootLink } from '../../scripts/commerce.js';
-import { events } from '@dropins/tools/event-bus.js';
 
 import { renderAuthDropdown } from './renderAuthDropdown.js';
 
@@ -58,7 +58,7 @@ export default async function decorate(block) {
   /** Search Bar */
   const navSearchBar = nav.querySelector('.nav-search-bar');
 
-  const searchPlaceholder = navSearchBar.querySelector(".default-content-wrapper > p").textContent ?? 'Search...';
+  const searchPlaceholder = navSearchBar.querySelector('.default-content-wrapper > p').textContent ?? 'Search...';
   navSearchBar.innerHTML = `
   <div class="search-bar-wrapper">
     <form class="search-bar-form">
@@ -90,11 +90,11 @@ export default async function decorate(block) {
     [
       { search: searchApi },
       { render: searchRender },
-      { SearchResults }
+      { SearchResults },
     ] = await Promise.all([
       import('@dropins/storefront-product-discovery/api.js'),
       import('@dropins/storefront-product-discovery/render.js'),
-      import('@dropins/storefront-product-discovery/containers/SearchResults.js')
+      import('@dropins/storefront-product-discovery/containers/SearchResults.js'),
     ]);
 
     searchModulesLoaded = true;
@@ -149,16 +149,15 @@ export default async function decorate(block) {
         const iconImg = document.createElement('img');
         iconImg.src = `../../icons/${importantLinksIcons[idx]}.svg`;
         iconImg.alt = 'icon';
-        
+
         const linkNode = navImportantLink.querySelector('a');
-        if(linkNode){
+        if (linkNode) {
           linkNode.prepend(iconImg);
-        }
-        else{
+        } else {
           navImportantLink.prepend(iconImg);
         }
       });
-    
+
     const authLi = document.createElement('li');
     navImportantLinksUl.append(authLi);
     renderAuthDropdown(authLi);
@@ -183,7 +182,7 @@ export default async function decorate(block) {
   `);
 
   navTools.append(minicart);
-  
+
   const minicartWrapper = navTools.querySelector('.minicart-wrapper');
   const minicartPanel = navTools.querySelector('.minicart-panel');
   const cartButton = navTools.querySelector('.nav-cart-button');
@@ -193,7 +192,7 @@ export default async function decorate(block) {
     const minicartValueSpan = minicartWrapper.querySelector('#mini-cart-total-value');
     const updatedValue = cart?.subtotal?.excludingTax?.value;
     const updatedCurrency = cart?.subtotal?.excludingTax?.currency;
-    if(minicartValueSpan && updatedValue && updatedCurrency) minicartValueSpan.textContent = `${updatedValue} ${updatedCurrency}`;
+    if (minicartValueSpan && updatedValue && updatedCurrency) minicartValueSpan.textContent = `${updatedValue} ${updatedCurrency}`;
   });
 
   /**
@@ -288,7 +287,7 @@ export default async function decorate(block) {
       toggleMiniCart(false);
     }
 
-    if(!searchWrapper.contains(e.target)){
+    if (!searchWrapper.contains(e.target)) {
       searchResultPanel.style.display = 'none';
     }
   });
