@@ -140,7 +140,7 @@ export default async function decorate(block) {
   /** Important Links */
   const navImportantLinks = nav.querySelector('.nav-important-links');
   if (navImportantLinks) {
-    const importantLinksIcons = ['cloud-download-blue', 'map-pin-blue', 'circle-user-blue'];
+    const importantLinksIcons = ['cloud-download-blue', 'map-pin-blue'];
     const navImportantLinksUl = navImportantLinks.querySelector(':scope .default-content-wrapper > ul');
 
     navImportantLinksUl
