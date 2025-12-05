@@ -95,12 +95,12 @@ export function renderAuthDropdown(navTools) {
     } else {
       authDropDownMenuList.style.display = 'none';
       authDropinContainer.style.display = 'block';
-      
+
       loginButton.innerHTML = 'Logowanie';
     }
 
     const iconImg = document.createElement('img');
-    iconImg.src = `../../icons/circle-user-blue.svg`;
+    iconImg.src = '../../icons/circle-user-blue.svg';
     iconImg.alt = 'icon';
     loginButton.prepend(iconImg);
   };
