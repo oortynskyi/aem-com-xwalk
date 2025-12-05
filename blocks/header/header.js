@@ -31,9 +31,9 @@ function toggleMenu(nav, forceExpanded = null) {
  */
 export default async function decorate(block) {
   // load nav as fragment
-  const navMeta = getMetadata('nav');
-  const navPath = navMeta ? new URL(navMeta, window.location).pathname : '/nav';
-  const fragment = await loadFragment(navPath);
+  const headerMeta = getMetadata('header');
+  const headerPath = headerMeta ? new URL(headerMeta, window.location).pathname : '/header';
+  const fragment = await loadFragment(headerPath);
 
   // decorate nav DOM
   block.textContent = '';
